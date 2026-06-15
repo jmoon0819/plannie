@@ -764,7 +764,8 @@ body {
 }
 
 .placed-sticker:hover .sticker-controls,
-.placed-sticker.picker-open .sticker-controls { display: flex; }
+.placed-sticker.picker-open .sticker-controls,
+.placed-sticker.selected .sticker-controls { display: flex; }
 
 .sticker-controls {
   position: absolute;
@@ -2262,7 +2263,7 @@ function placePhoto(src) {
   }
 
   const picker = document.createElement('div');
-  picker.style.cssText = 'display:none;position:absolute;bottom:calc(100% + 6px);left:0;background:white;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,0.18);padding:8px;z-index:300;gap:4px;flex-wrap:wrap;width:200px;';
+  picker.style.cssText = 'display:none;position:fixed;background:white;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,0.18);padding:8px;z-index:9999;gap:4px;flex-wrap:wrap;width:200px;';
   FRAMES.forEach(f => {
     const btn = document.createElement('button');
     btn.style.cssText = 'font-size:11px;padding:4px 7px;border:1.5px solid #e0e0e0;border-radius:7px;background:white;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:3px;white-space:nowrap;';
@@ -2292,8 +2293,18 @@ function placePhoto(src) {
   frameBtn.onclick = ev => {
     ev.stopPropagation();
     const isOpen = picker.style.display === 'flex';
-    picker.style.display = isOpen ? 'none' : 'flex';
-    el.classList.toggle('picker-open', !isOpen);
+    if (isOpen) {
+      picker.style.display = 'none';
+      el.classList.remove('picker-open');
+    } else {
+      picker.style.display = 'flex';
+      el.classList.add('picker-open');
+      // 화면 중앙 하단에 띄우기 (모바일 대응)
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      picker.style.left = Math.max(8, (vw - 200) / 2) + 'px';
+      picker.style.top  = Math.min(vh - 160, vh * 0.6) + 'px';
+    }
   };
 
   const del = document.createElement('button');
@@ -2308,7 +2319,29 @@ function placePhoto(src) {
   ctrl.appendChild(del);
   el.appendChild(ctrl);
 
-  document.addEventListener('click', () => { picker.style.display = 'none'; el.classList.remove('picker-open'); }, { capture: true, once: false });
+  // 스티커 탭하면 selected 토글 (모바일용 컨트롤 표시)
+  el.addEventListener('touchstart', e => {
+    if (e.target.closest('.sticker-ctrl-btn') || e.target.closest('.frame-picker-popup')) return;
+    document.querySelectorAll('.placed-sticker.selected').forEach(s => { if (s !== el) s.classList.remove('selected'); });
+    el.classList.toggle('selected');
+  }, { passive: true });
+
+  // 바깥 클릭/탭 시 피커 닫기 (터치는 setTimeout으로 즉시 닫힘 방지)
+  document.addEventListener('click', e => {
+    if (!el.contains(e.target)) {
+      picker.style.display = 'none';
+      el.classList.remove('picker-open');
+    }
+  });
+  document.addEventListener('touchstart', e => {
+    if (!el.contains(e.target)) {
+      setTimeout(() => {
+        picker.style.display = 'none';
+        el.classList.remove('picker-open');
+        el.classList.remove('selected');
+      }, 50);
+    }
+  }, { passive: true });
 
   makeDraggable(el);
   plannerPage.appendChild(el);
