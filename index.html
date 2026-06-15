@@ -6,6 +6,7 @@
 <title>플래니 — 오늘의 플래너</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Nanum+Pen+Script&family=Gaegu:wght@300;400;700&family=Black+Han+Sans&family=Gothic+A1:wght@900&display=swap" rel="stylesheet"/>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 
@@ -1467,6 +1468,7 @@ body.cal-mode .day-nav { display: none; }
 
   <button class="sticker-toggle" onclick="toggleStickerPanel()">✦ 스티커</button>
   <button class="sticker-toggle" onclick="document.getElementById('photoInput').click()">🖼 사진</button>
+  <button class="sticker-toggle screenshot-btn" onclick="takeScreenshot()">📸 저장</button>
   <input type="file" id="photoInput" accept="image/*" style="display:none;" onchange="handlePhotoUpload(event)"/>
 
   <div class="user-area" id="userArea" style="display:none;">
@@ -1509,12 +1511,6 @@ body.cal-mode .day-nav { display: none; }
       </div>
     </div>
 
-    <!-- COMMENT -->
-    <div class="comment-row">
-      <div class="row-meta">COMMENT</div>
-      <textarea class="comment-field" id="commentField" placeholder="오늘의 한마디, 듣고 있는 노래...">어떤 영화처럼 다시 내 앞에 나타나줘&#10;너무 보고싶은 너 너무 안고 싶은데</textarea>
-    </div>
-
     <!-- TOTAL TIME -->
     <div class="total-row">
       <div class="total-left">TOTAL TIME</div>
@@ -1555,9 +1551,9 @@ body.cal-mode .day-nav { display: none; }
 
     </div><!-- /body-row -->
 
-    <!-- MEMO -->
+    <!-- COMMENT -->
     <div class="memo-area">
-      <div class="memo-header">MEMO</div>
+      <div class="memo-header">COMMENT</div>
       <div class="memo-lines" id="memoLines"></div>
     </div>
 
@@ -2022,111 +2018,173 @@ function buildMemo() {
   }
 }
 
-// ─── CHARACTER STICKERS ───────────────────────────────────────────────────
+// ─── CHARACTER STICKERS (코카스파니엘) ───────────────────────────────────
 function makeFaceSVG({ eyeStyle='normal', mouthStyle='straight', browStyle='flat', extras='' }) {
-  const SK = '#FFDFC4'; // 피부
-  const HR = '#2A1A0E'; // 머리카락
+  const FUR = '#DBA94A';  // 황금 털
+  const EAR = '#B8802A';  // 귀 (진한 갈색)
+  const MUZ = '#E8C46A';  // 주둥이
   const INK = '#1A1A1A';
 
-  // 귀 → 얼굴 → 머리카락 순서로 그려야 자연스럽게 겹침
+  // 코카스파니엘: 오른귀(뒤) → 머리 → 왼귀(앞) → 주둥이 → 코
   const BASE = `
-  <ellipse cx="13" cy="50" rx="5" ry="7" fill="${SK}" stroke="${INK}" stroke-width="2"/>
-  <ellipse cx="67" cy="50" rx="5" ry="7" fill="${SK}" stroke="${INK}" stroke-width="2"/>
-  <ellipse cx="40" cy="50" rx="27" ry="24" fill="${SK}" stroke="${INK}" stroke-width="2.5"/>
-  <path d="M8 50 C5 33 13 9 40 7 C67 9 75 33 72 50 C66 42 55 38 40 37 C25 38 14 42 8 50Z"
-        fill="${HR}" stroke="${HR}" stroke-width="1"/>
-  <circle cx="40" cy="58" r="1.2" fill="${INK}" opacity="0.5"/>`;
+  <!-- 오른 귀 (뒤) -->
+  <path d="M57 26 C66 24 74 42 72 66 C71 74 60 76 56 68 C53 62 55 48 56 36 C57 29 57 26Z"
+        fill="${EAR}" stroke="${INK}" stroke-width="2.2" stroke-linejoin="round"/>
+  <path d="M63 36 C65 48 65 60 63 68" fill="none" stroke="#C49038" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/>
 
+  <!-- 머리 -->
+  <ellipse cx="40" cy="32" rx="23" ry="22" fill="${FUR}" stroke="${INK}" stroke-width="2.5"/>
+
+  <!-- 이마 곱슬 털 -->
+  <path d="M30 13 C32 8 39 10 37 15" fill="none" stroke="${EAR}" stroke-width="2.2" stroke-linecap="round"/>
+  <path d="M40 11 C43 6 49 9 47 14" fill="none" stroke="${EAR}" stroke-width="2" stroke-linecap="round"/>
+
+  <!-- 왼 귀 (앞) -->
+  <path d="M23 26 C14 24 6 42 8 66 C9 74 20 76 24 68 C27 62 25 48 24 36 C23 29 23 26Z"
+        fill="${EAR}" stroke="${INK}" stroke-width="2.2" stroke-linejoin="round"/>
+  <path d="M17 36 C15 48 15 60 17 68" fill="none" stroke="#C49038" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/>
+
+  <!-- 주둥이 -->
+  <ellipse cx="40" cy="47" rx="13" ry="10" fill="${MUZ}" stroke="${INK}" stroke-width="1.8"/>
+
+  <!-- 코 -->
+  <ellipse cx="40" cy="41" rx="6" ry="4.5" fill="${INK}"/>
+  <ellipse cx="38.5" cy="40" rx="2" ry="1.4" fill="#555"/>`;
+
+  // 눈썹 대신 눈 위 마킹 (개는 눈썹 위치에 털 마킹)
   const BROWS = {
-    flat:       `<path d="M27 44 Q32 42 37 44" fill="none" stroke="${INK}" stroke-width="2.8" stroke-linecap="round"/>
-                 <path d="M43 44 Q48 42 53 44" fill="none" stroke="${INK}" stroke-width="2.8" stroke-linecap="round"/>`,
-    determined: `<path d="M27 43 Q32 46 37 43" fill="none" stroke="${INK}" stroke-width="3" stroke-linecap="round"/>
-                 <path d="M43 43 Q48 46 53 43" fill="none" stroke="${INK}" stroke-width="3" stroke-linecap="round"/>`,
-    raised:     `<path d="M27 42 Q32 38 37 41" fill="none" stroke="${INK}" stroke-width="2.8" stroke-linecap="round"/>
-                 <path d="M43 41 Q48 38 53 42" fill="none" stroke="${INK}" stroke-width="2.8" stroke-linecap="round"/>`,
-    sad:        `<path d="M27 44 Q29 41 37 44" fill="none" stroke="${INK}" stroke-width="2.8" stroke-linecap="round"/>
-                 <path d="M43 44 Q51 41 53 44" fill="none" stroke="${INK}" stroke-width="2.8" stroke-linecap="round"/>`,
-    droopy:     `<path d="M27 46 Q32 44 37 46" fill="none" stroke="${INK}" stroke-width="2.5" stroke-linecap="round"/>
-                 <path d="M43 46 Q48 44 53 46" fill="none" stroke="${INK}" stroke-width="2.5" stroke-linecap="round"/>`,
+    flat:       `<path d="M26 25 Q32 23 38 25" fill="none" stroke="${EAR}" stroke-width="2.5" stroke-linecap="round"/>
+                 <path d="M42 25 Q48 23 54 25" fill="none" stroke="${EAR}" stroke-width="2.5" stroke-linecap="round"/>`,
+    determined: `<path d="M26 24 Q32 27 38 24" fill="none" stroke="${EAR}" stroke-width="2.5" stroke-linecap="round"/>
+                 <path d="M42 24 Q48 27 54 24" fill="none" stroke="${EAR}" stroke-width="2.5" stroke-linecap="round"/>`,
+    raised:     `<path d="M26 23 Q32 19 38 22" fill="none" stroke="${EAR}" stroke-width="2.5" stroke-linecap="round"/>
+                 <path d="M42 22 Q48 19 54 23" fill="none" stroke="${EAR}" stroke-width="2.5" stroke-linecap="round"/>`,
+    sad:        `<path d="M26 25 Q28 22 38 25" fill="none" stroke="${EAR}" stroke-width="2.5" stroke-linecap="round"/>
+                 <path d="M42 25 Q52 22 54 25" fill="none" stroke="${EAR}" stroke-width="2.5" stroke-linecap="round"/>`,
+    droopy:     `<path d="M26 27 Q32 25 38 27" fill="none" stroke="${EAR}" stroke-width="2.2" stroke-linecap="round"/>
+                 <path d="M42 27 Q48 25 54 27" fill="none" stroke="${EAR}" stroke-width="2.2" stroke-linecap="round"/>`,
   };
 
-  // 눈: 두꺼운 위 눈꺼풀 + 동공이 눈꺼풀에 바짝 붙음
+  // 눈: 두꺼운 위 눈꺼풀 + 동공이 눈꺼풀에 바짝 붙음 (코카스파니엘 특유 처진 눈)
   const EYES = {
-    // 기본: 반눈 — 동공이 눈꺼풀 바로 아래 붙어있음
     normal: `
-      <path d="M25 50 Q31 46 37 50" fill="none" stroke="${INK}" stroke-width="3" stroke-linecap="round"/>
-      <circle cx="31" cy="51.5" r="2.4" fill="${INK}"/>
-      <path d="M43 50 Q49 46 55 50" fill="none" stroke="${INK}" stroke-width="3" stroke-linecap="round"/>
-      <circle cx="49" cy="51.5" r="2.4" fill="${INK}"/>`,
-    // 졸려: 눈꺼풀이 더 내려와서 동공 절반 가림
+      <path d="M24 33 Q32 28 40 33" fill="none" stroke="${INK}" stroke-width="3.2" stroke-linecap="round"/>
+      <ellipse cx="32" cy="35" rx="3.5" ry="4" fill="${INK}"/>
+      <ellipse cx="34" cy="33" rx="1.4" ry="1.4" fill="#fff"/>
+      <path d="M40 33 Q48 28 56 33" fill="none" stroke="${INK}" stroke-width="3.2" stroke-linecap="round"/>
+      <ellipse cx="48" cy="35" rx="3.5" ry="4" fill="${INK}"/>
+      <ellipse cx="50" cy="33" rx="1.4" ry="1.4" fill="#fff"/>`,
     sleepy: `
-      <path d="M25 52 Q31 48 37 52" fill="none" stroke="${INK}" stroke-width="3.2" stroke-linecap="round"/>
-      <circle cx="31" cy="53" r="2.2" fill="${INK}"/>
-      <path d="M25 54 Q31 57 37 54" fill="${SK}" stroke="${INK}" stroke-width="1.3" stroke-linecap="round"/>
-      <path d="M43 52 Q49 48 55 52" fill="none" stroke="${INK}" stroke-width="3.2" stroke-linecap="round"/>
-      <circle cx="49" cy="53" r="2.2" fill="${INK}"/>
-      <path d="M43 54 Q49 57 55 54" fill="${SK}" stroke="${INK}" stroke-width="1.3" stroke-linecap="round"/>`,
-    // 헉: 크게 뜬 눈
+      <path d="M24 35 Q32 31 40 35" fill="none" stroke="${INK}" stroke-width="3.5" stroke-linecap="round"/>
+      <ellipse cx="32" cy="36" rx="3" ry="3" fill="${INK}"/>
+      <path d="M24 37 Q32 41 40 37" fill="${MUZ}" stroke="${INK}" stroke-width="1.5" stroke-linecap="round"/>
+      <path d="M40 35 Q48 31 56 35" fill="none" stroke="${INK}" stroke-width="3.5" stroke-linecap="round"/>
+      <ellipse cx="48" cy="36" rx="3" ry="3" fill="${INK}"/>
+      <path d="M40 37 Q48 41 56 37" fill="${MUZ}" stroke="${INK}" stroke-width="1.5" stroke-linecap="round"/>`,
     big: `
-      <path d="M24 48 Q31 42 38 48" fill="none" stroke="${INK}" stroke-width="3" stroke-linecap="round"/>
-      <ellipse cx="31" cy="52" rx="4.5" ry="4.2" fill="${INK}"/>
-      <ellipse cx="33" cy="50" rx="1.5" ry="1.5" fill="#fff"/>
-      <path d="M42 48 Q49 42 56 48" fill="none" stroke="${INK}" stroke-width="3" stroke-linecap="round"/>
-      <ellipse cx="49" cy="52" rx="4.5" ry="4.2" fill="${INK}"/>
-      <ellipse cx="51" cy="50" rx="1.5" ry="1.5" fill="#fff"/>`,
-    // 행복: 눈웃음 (아래로 휜 선)
+      <path d="M23 31 Q32 25 41 31" fill="none" stroke="${INK}" stroke-width="3.2" stroke-linecap="round"/>
+      <ellipse cx="32" cy="36" rx="5.5" ry="5.5" fill="${INK}"/>
+      <ellipse cx="34" cy="33.5" rx="1.8" ry="1.8" fill="#fff"/>
+      <path d="M39 31 Q48 25 57 31" fill="none" stroke="${INK}" stroke-width="3.2" stroke-linecap="round"/>
+      <ellipse cx="48" cy="36" rx="5.5" ry="5.5" fill="${INK}"/>
+      <ellipse cx="50" cy="33.5" rx="1.8" ry="1.8" fill="#fff"/>`,
     happy: `
-      <path d="M25 52 Q31 47 37 52" fill="none" stroke="${INK}" stroke-width="3" stroke-linecap="round"/>
-      <path d="M43 52 Q49 47 55 52" fill="none" stroke="${INK}" stroke-width="3" stroke-linecap="round"/>`,
-    // 슬픔: 눈꺼풀 + 동공 붙어있고 살짝 처진 느낌
+      <path d="M24 35 Q32 30 40 35" fill="none" stroke="${INK}" stroke-width="3.2" stroke-linecap="round"/>
+      <path d="M40 35 Q48 30 56 35" fill="none" stroke="${INK}" stroke-width="3.2" stroke-linecap="round"/>`,
     sad: `
-      <path d="M25 51 Q31 48 37 51" fill="none" stroke="${INK}" stroke-width="3" stroke-linecap="round"/>
-      <circle cx="31" cy="52.5" r="2.4" fill="${INK}"/>
-      <path d="M43 51 Q49 48 55 51" fill="none" stroke="${INK}" stroke-width="3" stroke-linecap="round"/>
-      <circle cx="49" cy="52.5" r="2.4" fill="${INK}"/>`,
-    // 파이팅: 윙크 (왼눈 감음)
+      <path d="M24 33 Q32 30 40 33" fill="none" stroke="${INK}" stroke-width="3.2" stroke-linecap="round"/>
+      <ellipse cx="32" cy="35.5" rx="3.2" ry="3.8" fill="${INK}"/>
+      <ellipse cx="34" cy="33.5" rx="1.2" ry="1.2" fill="#fff"/>
+      <path d="M40 33 Q48 30 56 33" fill="none" stroke="${INK}" stroke-width="3.2" stroke-linecap="round"/>
+      <ellipse cx="48" cy="35.5" rx="3.2" ry="3.8" fill="${INK}"/>
+      <ellipse cx="50" cy="33.5" rx="1.2" ry="1.2" fill="#fff"/>`,
     wink: `
-      <path d="M25 52 Q31 56 37 52" fill="none" stroke="${INK}" stroke-width="2.8" stroke-linecap="round"/>
-      <path d="M43 50 Q49 46 55 50" fill="none" stroke="${INK}" stroke-width="3" stroke-linecap="round"/>
-      <circle cx="49" cy="51.5" r="2.4" fill="${INK}"/>`,
+      <path d="M24 35 Q32 40 40 35" fill="none" stroke="${INK}" stroke-width="3" stroke-linecap="round"/>
+      <path d="M40 33 Q48 28 56 33" fill="none" stroke="${INK}" stroke-width="3.2" stroke-linecap="round"/>
+      <ellipse cx="48" cy="35" rx="3.5" ry="4" fill="${INK}"/>
+      <ellipse cx="50" cy="33" rx="1.4" ry="1.4" fill="#fff"/>`,
   };
 
   const MOUTHS = {
-    straight: `<path d="M33 64 Q40 64 47 64" fill="none" stroke="${INK}" stroke-width="2.2" stroke-linecap="round"/>`,
-    smile:    `<path d="M33 63 Q40 69 47 63" fill="none" stroke="${INK}" stroke-width="2.2" stroke-linecap="round"/>`,
-    bigsmile: `<path d="M30 62 Q40 72 50 62" fill="none" stroke="${INK}" stroke-width="2.5" stroke-linecap="round"/>
-               <path d="M30 62 Q40 68 50 62" fill="rgba(255,150,130,0.3)"/>`,
-    open_o:   `<ellipse cx="40" cy="66" rx="4.5" ry="4" fill="${INK}"/>
-               <ellipse cx="40" cy="65.5" rx="2.5" ry="2" fill="#8B0000" opacity="0.6"/>`,
-    sad:      `<path d="M33 67 Q40 62 47 67" fill="none" stroke="${INK}" stroke-width="2.2" stroke-linecap="round"/>`,
-    slight:   `<path d="M34 64 Q40 67 46 64" fill="none" stroke="${INK}" stroke-width="2.2" stroke-linecap="round"/>`,
-    teethsmile: `<path d="M30 62 Q40 72 50 62" fill="none" stroke="${INK}" stroke-width="2.5" stroke-linecap="round"/>
-                 <path d="M33 63 Q40 70 47 63 L47 66 Q40 73 33 66Z" fill="#fff" stroke="${INK}" stroke-width="1"/>`,
+    straight:   `<path d="M33 53 Q40 53 47 53" fill="none" stroke="${INK}" stroke-width="2.2" stroke-linecap="round"/>`,
+    smile:      `<path d="M33 52 Q40 58 47 52" fill="none" stroke="${INK}" stroke-width="2.2" stroke-linecap="round"/>`,
+    bigsmile:   `<path d="M30 51 Q40 60 50 51" fill="none" stroke="${INK}" stroke-width="2.5" stroke-linecap="round"/>`,
+    open_o:     `<ellipse cx="40" cy="55" rx="4" ry="3.5" fill="${INK}"/>`,
+    sad:        `<path d="M33 56 Q40 51 47 56" fill="none" stroke="${INK}" stroke-width="2.2" stroke-linecap="round"/>`,
+    slight:     `<path d="M35 53 Q40 56 45 53" fill="none" stroke="${INK}" stroke-width="2.2" stroke-linecap="round"/>`,
+    tongue:     `<path d="M33 52 Q40 58 47 52" fill="none" stroke="${INK}" stroke-width="2.2" stroke-linecap="round"/>
+                 <ellipse cx="40" cy="59" rx="5.5" ry="4.5" fill="#FF8FA3"/>
+                 <path d="M40 56 L40 63" fill="none" stroke="#FF6B8A" stroke-width="1.2"/>`,
   };
 
-  return `<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">${BASE}${BROWS[browStyle]||BROWS.flat}${EYES[eyeStyle]||EYES.normal}${MOUTHS[mouthStyle]||MOUTHS.straight}${extras}</svg>`;
+  return `<svg viewBox="0 0 80 82" xmlns="http://www.w3.org/2000/svg">${BASE}${BROWS[browStyle]||BROWS.flat}${EYES[eyeStyle]||EYES.normal}${MOUTHS[mouthStyle]||MOUTHS.straight}${extras}</svg>`;
 }
 
 const CHAR_STICKERS = [
   { label: '기본', svg: makeFaceSVG({ eyeStyle:'normal', mouthStyle:'slight', browStyle:'flat' }) },
   { label: '졸려', svg: makeFaceSVG({ eyeStyle:'sleepy', mouthStyle:'straight', browStyle:'droopy',
-      extras: `<text x="60" y="30" font-size="11" fill="#AAA" font-family="sans-serif">z</text>
-               <text x="66" y="22" font-size="8"  fill="#CCC" font-family="sans-serif">z</text>` }) },
+      extras: `<text x="59" y="20" font-size="11" fill="#AAA" font-family="sans-serif">z</text>
+               <text x="65" y="12" font-size="8"  fill="#CCC" font-family="sans-serif">z</text>` }) },
   { label: '헉!',  svg: makeFaceSVG({ eyeStyle:'big', mouthStyle:'open_o', browStyle:'raised',
-      extras: `<text x="57" y="22" font-size="13" fill="#F4A" font-family="sans-serif" font-weight="bold">!</text>` }) },
-  { label: '파이팅', svg: makeFaceSVG({ eyeStyle:'wink', mouthStyle:'bigsmile', browStyle:'determined',
-      extras: `<ellipse cx="25" cy="58" rx="5.5" ry="3.5" fill="rgba(255,150,150,0.4)"/>
-               <ellipse cx="55" cy="58" rx="5.5" ry="3.5" fill="rgba(255,150,150,0.4)"/>
-               <text x="57" y="18" font-size="12" font-family="sans-serif">✊</text>` }) },
+      extras: `<text x="58" y="18" font-size="13" fill="#FF44AA" font-family="sans-serif" font-weight="bold">!</text>` }) },
+  { label: '파이팅', svg: makeFaceSVG({ eyeStyle:'wink', mouthStyle:'tongue', browStyle:'determined',
+      extras: `<ellipse cx="24" cy="42" rx="5" ry="3.5" fill="rgba(255,150,150,0.45)"/>
+               <ellipse cx="56" cy="42" rx="5" ry="3.5" fill="rgba(255,150,150,0.45)"/>
+               <text x="57" y="14" font-size="12" font-family="sans-serif">✊</text>` }) },
   { label: '슬픔', svg: makeFaceSVG({ eyeStyle:'sad', mouthStyle:'sad', browStyle:'sad',
-      extras: `<ellipse cx="29" cy="59" rx="2" ry="3" fill="rgba(100,180,255,0.7)"/>
-               <path d="M29 62 Q29.5 67 30 70" fill="none" stroke="rgba(80,160,255,0.8)" stroke-width="1.8" stroke-linecap="round"/>` }) },
+      extras: `<ellipse cx="30" cy="42" rx="2" ry="3" fill="rgba(100,180,255,0.75)"/>
+               <path d="M30 45 Q30.5 50 31 53" fill="none" stroke="rgba(80,160,255,0.8)" stroke-width="1.8" stroke-linecap="round"/>` }) },
   { label: '행복', svg: makeFaceSVG({ eyeStyle:'happy', mouthStyle:'bigsmile', browStyle:'flat',
-      extras: `<ellipse cx="25" cy="58" rx="5.5" ry="3.5" fill="rgba(255,150,150,0.4)"/>
-               <ellipse cx="55" cy="58" rx="5.5" ry="3.5" fill="rgba(255,150,150,0.4)"/>
-               <text x="8"  y="26" font-size="9" font-family="sans-serif">✨</text>
-               <text x="58" y="28" font-size="9" font-family="sans-serif">✨</text>` }) },
+      extras: `<ellipse cx="24" cy="42" rx="5" ry="3.5" fill="rgba(255,150,150,0.45)"/>
+               <ellipse cx="56" cy="42" rx="5" ry="3.5" fill="rgba(255,150,150,0.45)"/>
+               <text x="6"  y="22" font-size="9" font-family="sans-serif">✨</text>
+               <text x="60" y="22" font-size="9" font-family="sans-serif">✨</text>` }) },
 ];
+
+async function takeScreenshot() {
+  const btn = document.querySelector('.screenshot-btn');
+  const page = document.querySelector('.planner-page');
+  if (!page || !window.html2canvas) return;
+
+  btn.textContent = '⏳';
+  btn.disabled = true;
+
+  // 스티커 패널 잠깐 숨기기
+  const panel = document.getElementById('stickerPanel');
+  const panelWas = panel.style.display;
+  panel.style.display = 'none';
+
+  try {
+    const canvas = await html2canvas(page, {
+      backgroundColor: '#FAFAF8',
+      scale: 2,
+      useCORS: true,
+      allowTaint: true,
+      scrollX: 0,
+      scrollY: -window.scrollY,
+    });
+    const dataUrl = canvas.toDataURL('image/png');
+    const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+    if (isIOS) {
+      const w = window.open();
+      w.document.write(`<img src="${dataUrl}" style="max-width:100%;"/>`);
+      w.document.title = '플래니 저장';
+      alert('이미지를 꾹 눌러서 "사진에 저장" 하세요!');
+    } else {
+      const dateStr = dateKey(currentDate).replace(/-/g, '');
+      const link = document.createElement('a');
+      link.download = `plannie_${dateStr}.png`;
+      link.href = dataUrl;
+      link.click();
+    }
+  } catch(e) {
+    alert('스크린샷 실패: ' + e.message);
+  } finally {
+    panel.style.display = panelWas;
+    btn.textContent = '📸 저장';
+    btn.disabled = false;
+  }
+}
 
 function svgToDataUrl(svgStr) {
   return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgStr);
