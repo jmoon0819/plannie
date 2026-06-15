@@ -4,7 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>플래니 — 오늘의 플래너</title>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Nanum+Pen+Script&family=Gaegu:wght@300;400;700&family=Black+Han+Sans&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Nanum+Pen+Script&family=Gaegu:wght@300;400;700&family=Black+Han+Sans&family=Gothic+A1:wght@900&display=swap" rel="stylesheet"/>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
@@ -1356,6 +1356,17 @@ body.cal-mode .day-nav { display: none; }
 .planner-wrap.slide-in-right  { animation: slideInRight  0.2s ease forwards; }
 .planner-wrap.slide-in-left   { animation: slideInLeft   0.2s ease forwards; }
 
+/* MOBILE */
+@media (max-width: 480px) {
+  .body-row { grid-template-columns: 1fr 110px; }
+  .tasks-header,
+  .task-row { grid-template-columns: 44px 64px 1fr 24px 18px; }
+  .timetable-area { overflow-x: hidden; }
+  .tt-scroll { overflow-x: hidden; }
+  .tt-grid { min-width: unset; width: 100%; }
+  .planner-wrap { border-radius: 0; margin: 0; width: 100vw; }
+}
+
 /* PRINT */
 @media print {
   body { background: white; padding: 0; }
@@ -1372,7 +1383,7 @@ body.cal-mode .day-nav { display: none; }
   <div class="login-logo">
     <svg width="200" height="72" viewBox="0 0 200 72" xmlns="http://www.w3.org/2000/svg">
       <text x="100" y="58" text-anchor="middle"
-        font-family="'Nanum Pen Script', cursive"
+        font-family="'Gothic A1', 'Noto Sans KR', sans-serif" font-weight="900"
         font-size="58" fill="#111">플래니</text>
     </svg>
   </div>
@@ -1426,7 +1437,7 @@ body.cal-mode .day-nav { display: none; }
   <div class="toolbar-logo">
     <svg width="68" height="24" viewBox="0 0 200 72" xmlns="http://www.w3.org/2000/svg">
       <text x="100" y="58" text-anchor="middle"
-        font-family="'Nanum Pen Script', cursive"
+        font-family="'Gothic A1', 'Noto Sans KR', sans-serif" font-weight="900"
         font-size="58" fill="#111">플래니</text>
     </svg>
   </div>
@@ -2341,19 +2352,24 @@ function placeSticker(emoji, x, y) {
 
 function makeDraggable(el) {
   let ox, oy, startX, startY;
+
+  function startDrag(clientX, clientY) {
+    startX = clientX;
+    startY = clientY;
+    ox = el.offsetLeft;
+    oy = el.offsetTop;
+  }
+  function onMove(clientX, clientY) {
+    el.style.left = (ox + clientX - startX) + 'px';
+    el.style.top  = (oy + clientY - startY) + 'px';
+  }
+
+  // 마우스
   el.addEventListener('mousedown', e => {
     if (e.target.closest('.sticker-ctrl-btn')) return;
     e.preventDefault();
-    const rect = el.parentElement.getBoundingClientRect();
-    startX = e.clientX;
-    startY = e.clientY;
-    ox = el.offsetLeft;
-    oy = el.offsetTop;
-
-    const move = mv => {
-      el.style.left = (ox + mv.clientX - startX) + 'px';
-      el.style.top  = (oy + mv.clientY - startY) + 'px';
-    };
+    startDrag(e.clientX, e.clientY);
+    const move = mv => onMove(mv.clientX, mv.clientY);
     const up = () => {
       document.removeEventListener('mousemove', move);
       document.removeEventListener('mouseup', up);
@@ -2361,6 +2377,24 @@ function makeDraggable(el) {
     document.addEventListener('mousemove', move);
     document.addEventListener('mouseup', up);
   });
+
+  // 터치
+  el.addEventListener('touchstart', e => {
+    if (e.target.closest('.sticker-ctrl-btn')) return;
+    e.preventDefault();
+    const t = e.touches[0];
+    startDrag(t.clientX, t.clientY);
+    const move = mv => {
+      const tt = mv.touches[0];
+      onMove(tt.clientX, tt.clientY);
+    };
+    const up = () => {
+      el.removeEventListener('touchmove', move);
+      el.removeEventListener('touchend', up);
+    };
+    el.addEventListener('touchmove', move, { passive: false });
+    el.addEventListener('touchend', up);
+  }, { passive: false });
 }
 
 // ─── 구글 로그인 ────────────────────────────────────────────────────────────
