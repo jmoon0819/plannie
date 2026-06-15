@@ -1514,7 +1514,7 @@ body.cal-mode .day-nav { display: none; }
     <!-- TOTAL TIME -->
     <div class="total-row">
       <div class="total-left">TOTAL TIME</div>
-      <input class="total-time-field" id="totalTime" value="7H 24M" maxlength="10"/>
+      <input class="total-time-field" id="totalTime" value="0H 00M" maxlength="10"/>
     </div>
 
     <!-- BODY -->
@@ -1570,15 +1570,7 @@ body.cal-mode .day-nav { display: none; }
 
 <script>
 // ─── INITIAL DATA ──────────────────────────────────────────────────────────
-const defaultTasks = [
-  { subject:'수학',   time:'09:00~11:30', text:'수행평가 문제 연습',             done:true,  colorKey:'ck_1' },
-  { subject:'과학',   time:'11:30~12:30', text:'ㅂ3강 생명 시스템에서 탄법의 흐름', done:false, colorKey:'ck_2' },
-  { subject:'국어',   time:'13:00~14:30', text:'문법 프린트 빈칸 채우기',         done:false, colorKey:'ck_3' },
-  { subject:'국어',   time:'',            text:'나참비 (2) 브로콜리 편지',        done:false, colorKey:'ck_4' },
-  { subject:'한국사', time:'15:00~16:30', text:'ㅁ2단원 13시시~15시시',           done:false, colorKey:'ck_5' },
-  { subject:'한국사', time:'16:30~18:00', text:'한국사 교과서 ~ 2단원 한독',      done:false, colorKey:'ck_6' },
-  { subject:'수학',   time:'19:00~21:00', text:'마들 수행 6 ~ 유형 11왕+ 담',    done:false, colorKey:'ck_7' },
-];
+const defaultTasks = [];
 
 // ─── HIGHLIGHT ────────────────────────────────────────────────────────────
 let currentHL = 'none';
