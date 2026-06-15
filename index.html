@@ -380,6 +380,32 @@ body {
 }
 
 /* TOTAL TIME ROW */
+.quote-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid var(--line-dark);
+  padding: 9px 4px;
+  background: linear-gradient(90deg, rgba(255,220,80,0.10) 0%, transparent 100%);
+}
+.quote-icon {
+  font-size: 13px;
+  color: #E8B84B;
+  flex-shrink: 0;
+  line-height: 1;
+}
+.quote-field {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--ink);
+  font-style: italic;
+}
+.quote-field::placeholder { color: #ccc; font-style: italic; }
+
 .total-row {
   display: flex;
   align-items: center;
@@ -1398,7 +1424,7 @@ body.cal-mode .day-nav { display: none; }
         font-size="58" fill="#111">플래니</text>
     </svg>
   </div>
-  <p class="login-sub">고등학생을 위한 나만의 스터디 플래너</p>
+  <p class="login-sub">공부한 하루를 꾸미고 공유해요</p>
   <div class="login-card">
     <div class="login-title">시작하기</div>
     <p class="login-desc">구글 계정으로 로그인하면<br>내 플래너가 저장돼요</p>
@@ -1466,9 +1492,19 @@ body.cal-mode .day-nav { display: none; }
 
   <div class="toolbar-sep"></div>
 
+  <div class="tool-group">
+    <span class="tool-label">테마</span>
+    <button class="font-btn active" onclick="setTheme('simple',this)" title="심플">심플</button>
+    <button class="font-btn" onclick="setTheme('gongsta',this)" title="공스타">공스타</button>
+    <button class="font-btn" onclick="setTheme('idol',this)" title="아이돌">아이돌</button>
+    <button class="font-btn" onclick="setTheme('pink',this)" title="핑크">핑크</button>
+    <button class="font-btn" onclick="setTheme('mono',this)" title="모노톤">모노</button>
+    <button class="font-btn" onclick="setTheme('exam',this)" title="시험기간">시험</button>
+  </div>
+  <div class="toolbar-sep"></div>
   <button class="sticker-toggle" onclick="toggleStickerPanel()">✦ 스티커</button>
   <button class="sticker-toggle" onclick="document.getElementById('photoInput').click()">🖼 사진</button>
-  <button class="sticker-toggle screenshot-btn" onclick="takeScreenshot()">📸 저장</button>
+  <button class="sticker-toggle screenshot-btn" onclick="takeScreenshot()">📸 공유하기</button>
   <input type="file" id="photoInput" accept="image/*" style="display:none;" onchange="handlePhotoUpload(event)"/>
 
   <div class="user-area" id="userArea" style="display:none;">
@@ -1509,6 +1545,12 @@ body.cal-mode .day-nav { display: none; }
         <div class="dday-event-field" id="ddayEvent"></div>
         <div class="dday-num-field" id="ddayNum"></div>
       </div>
+    </div>
+
+    <!-- 오늘의 한마디 -->
+    <div class="quote-row">
+      <div class="quote-icon">✦</div>
+      <input class="quote-field" id="quoteField" placeholder="오늘의 한마디, 기분, 승리..."/>
     </div>
 
     <!-- TOTAL TIME -->
@@ -1559,6 +1601,19 @@ body.cal-mode .day-nav { display: none; }
 
   </div><!-- /planner-page -->
 </div><!-- /planner-wrap -->
+
+<!-- 공유 모달 -->
+<div id="shareModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:99999;flex-direction:column;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:#fff;border-radius:20px;padding:20px;width:100%;max-width:380px;display:flex;flex-direction:column;align-items:center;gap:14px;">
+    <div style="font-family:'Noto Sans KR',sans-serif;font-weight:700;font-size:15px;color:#222;">📸 공유하기</div>
+    <img id="sharePreview" style="width:100%;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,0.12);"/>
+    <div style="display:flex;gap:10px;width:100%;">
+      <button onclick="downloadShare('normal')" style="flex:1;padding:13px;background:#1a1a1a;color:#fff;border:none;border-radius:12px;font-size:14px;font-family:'Noto Sans KR',sans-serif;font-weight:600;cursor:pointer;">이미지 저장</button>
+      <button onclick="downloadShare('story')" style="flex:1;padding:13px;background:linear-gradient(135deg,#f093fb,#f5576c);color:#fff;border:none;border-radius:12px;font-size:14px;font-family:'Noto Sans KR',sans-serif;font-weight:600;cursor:pointer;">스토리용 9:16</button>
+    </div>
+    <button onclick="closeShareModal()" style="width:100%;padding:11px;background:#f5f5f5;color:#666;border:none;border-radius:12px;font-size:13px;font-family:'Noto Sans KR',sans-serif;cursor:pointer;">닫기</button>
+  </div>
+</div>
 
 <div class="day-nav">
   <button class="day-nav-btn" onclick="navigateDay(-1)">‹ 어제</button>
@@ -2133,6 +2188,32 @@ const CHAR_STICKERS = [
                <text x="60" y="22" font-size="9" font-family="sans-serif">✨</text>` }) },
 ];
 
+const THEMES = {
+  simple:  { paper:'#FAFAF8', line:'#E8E8E8', lineDark:'#CCCCCC', ink:'#1A1A1A', inkLight:'#888', inkLighter:'#BBB', accent:'#E8B84B' },
+  gongsta: { paper:'#FFFDF5', line:'#F0E6C8', lineDark:'#D4C090', ink:'#2A1F0E', inkLight:'#8B7040', inkLighter:'#C4A96A', accent:'#C8913A' },
+  idol:    { paper:'#FFF5FC', line:'#F5D6EE', lineDark:'#E0A8D0', ink:'#3A0A2A', inkLight:'#9A4A7A', inkLighter:'#D4A0C0', accent:'#C8508A' },
+  pink:    { paper:'#FFF8F9', line:'#FFD6DC', lineDark:'#FFB0BB', ink:'#3A1020', inkLight:'#C06080', inkLighter:'#F0A0B0', accent:'#FF6B8A' },
+  mono:    { paper:'#F4F4F2', line:'#DCDCDC', lineDark:'#AAAAAA', ink:'#111111', inkLight:'#555555', inkLighter:'#999999', accent:'#444444' },
+  exam:    { paper:'#F0F4FF', line:'#C8D8FF', lineDark:'#99B0EE', ink:'#0A1A4A', inkLight:'#4060B0', inkLighter:'#8899CC', accent:'#3355CC' },
+};
+
+function setTheme(name, btn) {
+  const t = THEMES[name];
+  if (!t) return;
+  const r = document.documentElement.style;
+  r.setProperty('--paper', t.paper);
+  r.setProperty('--line', t.line);
+  r.setProperty('--line-dark', t.lineDark);
+  r.setProperty('--ink', t.ink);
+  r.setProperty('--ink-light', t.inkLight);
+  r.setProperty('--ink-lighter', t.inkLighter);
+  document.querySelectorAll('.quote-icon').forEach(el => el.style.color = t.accent);
+  if (btn) {
+    btn.closest('.tool-group').querySelectorAll('.font-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  }
+}
+
 async function takeScreenshot() {
   const btn = document.querySelector('.screenshot-btn');
   const page = document.querySelector('.planner-page');
@@ -2140,42 +2221,96 @@ async function takeScreenshot() {
 
   btn.textContent = '⏳';
   btn.disabled = true;
-
-  // 스티커 패널 잠깐 숨기기
   const panel = document.getElementById('stickerPanel');
   const panelWas = panel.style.display;
   panel.style.display = 'none';
 
   try {
     const canvas = await html2canvas(page, {
-      backgroundColor: '#FAFAF8',
-      scale: 2,
-      useCORS: true,
-      allowTaint: true,
-      scrollX: 0,
-      scrollY: -window.scrollY,
+      backgroundColor: '#FAFAF8', scale: 2,
+      useCORS: true, allowTaint: true,
+      scrollX: 0, scrollY: -window.scrollY,
     });
-    const dataUrl = canvas.toDataURL('image/png');
-    const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
-    if (isIOS) {
-      const w = window.open();
-      w.document.write(`<img src="${dataUrl}" style="max-width:100%;"/>`);
-      w.document.title = '플래니 저장';
-      alert('이미지를 꾹 눌러서 "사진에 저장" 하세요!');
-    } else {
-      const dateStr = dateKey(currentDate).replace(/-/g, '');
-      const link = document.createElement('a');
-      link.download = `plannie_${dateStr}.png`;
-      link.href = dataUrl;
-      link.click();
-    }
+    showShareModal(canvas);
   } catch(e) {
-    alert('스크린샷 실패: ' + e.message);
+    alert('캡처 실패: ' + e.message);
   } finally {
     panel.style.display = panelWas;
-    btn.textContent = '📸 저장';
+    btn.textContent = '📸 공유하기';
     btn.disabled = false;
   }
+}
+
+function showShareModal(plannerCanvas) {
+  const modal = document.getElementById('shareModal');
+  const preview = document.getElementById('sharePreview');
+  const dateStr = dateKey(currentDate).replace(/-/g, '');
+
+  // 기본형 미리보기
+  preview.src = plannerCanvas.toDataURL('image/png');
+  modal.style.display = 'flex';
+  modal._plannerCanvas = plannerCanvas;
+  modal._dateStr = dateStr;
+}
+
+function closeShareModal() {
+  document.getElementById('shareModal').style.display = 'none';
+}
+
+function downloadShare(mode) {
+  const modal = document.getElementById('shareModal');
+  const canvas = modal._plannerCanvas;
+  const dateStr = modal._dateStr;
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+
+  let finalCanvas = canvas;
+
+  if (mode === 'story') {
+    // 9:16 스토리 캔버스 (1080×1920)
+    const sc = document.createElement('canvas');
+    sc.width = 1080; sc.height = 1920;
+    const ctx = sc.getContext('2d');
+
+    // 배경: 크림색 그라디언트
+    const grad = ctx.createLinearGradient(0, 0, 0, 1920);
+    grad.addColorStop(0, '#FFF9F0');
+    grad.addColorStop(1, '#F5EDE0');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, 1080, 1920);
+
+    // 플래너 이미지 중앙 배치 (여백 남김)
+    const maxW = 980, maxH = 1600;
+    const scale = Math.min(maxW / canvas.width, maxH / canvas.height);
+    const w = canvas.width * scale, h = canvas.height * scale;
+    const x = (1080 - w) / 2, y = (1920 - h) / 2 - 60;
+
+    // 그림자 효과
+    ctx.shadowColor = 'rgba(0,0,0,0.18)';
+    ctx.shadowBlur = 40;
+    ctx.shadowOffsetY = 10;
+    ctx.drawImage(canvas, x, y, w, h);
+    ctx.shadowColor = 'transparent';
+
+    // 하단 로고
+    ctx.font = 'bold 52px serif';
+    ctx.fillStyle = '#B8956A';
+    ctx.textAlign = 'center';
+    ctx.fillText('plannie', 540, 1860);
+
+    finalCanvas = sc;
+  }
+
+  const dataUrl = finalCanvas.toDataURL('image/png');
+  if (isIOS) {
+    const win = window.open();
+    win.document.write(`<img src="${dataUrl}" style="max-width:100%;"/><p style="text-align:center;font-family:sans-serif;color:#888;margin-top:12px;">이미지를 꾹 눌러 "사진에 저장" 하세요</p>`);
+  } else {
+    const a = document.createElement('a');
+    a.download = `plannie_${mode}_${dateStr}.png`;
+    a.href = dataUrl;
+    a.click();
+  }
+  closeShareModal();
 }
 
 function svgToDataUrl(svgStr) {
@@ -2331,36 +2466,39 @@ function placePhoto(src) {
     el.classList.remove('picker-open');
   }
 
+  let rotation = 0;
+
   const ctrl = document.createElement('div');
   ctrl.className = 'sticker-controls';
 
-  const sizeUp = document.createElement('button');
-  sizeUp.className = 'sticker-ctrl-btn';
-  sizeUp.textContent = '+';
-  sizeUp.onclick = () => { el.style.width = (el.offsetWidth + 20) + 'px'; };
+  function mkBtn(text, bg, action) {
+    const b = document.createElement('button');
+    b.className = 'sticker-ctrl-btn';
+    b.textContent = text;
+    if (bg) b.style.background = bg;
+    b.addEventListener('touchend', ev => { ev.preventDefault(); ev.stopPropagation(); action(); });
+    b.onclick = ev => { ev.stopPropagation(); action(); };
+    return b;
+  }
 
-  const sizeDn = document.createElement('button');
-  sizeDn.className = 'sticker-ctrl-btn';
-  sizeDn.textContent = '–';
-  sizeDn.onclick = () => { el.style.width = Math.max(40, el.offsetWidth - 20) + 'px'; };
+  ctrl.appendChild(mkBtn('+', null, () => { el.style.width = (el.offsetWidth + 20) + 'px'; }));
+  ctrl.appendChild(mkBtn('–', null, () => { el.style.width = Math.max(40, el.offsetWidth - 20) + 'px'; }));
+  ctrl.appendChild(mkBtn('↻', null, () => { rotation = (rotation + 15) % 360; el.style.transform = `rotate(${rotation}deg)`; }));
 
   const frameBtn = document.createElement('button');
   frameBtn.className = 'sticker-ctrl-btn';
   frameBtn.textContent = '▭';
   frameBtn.addEventListener('touchend', ev => { ev.preventDefault(); ev.stopPropagation(); picker.style.display === 'flex' ? closePicker() : openPicker(); });
   frameBtn.onclick = ev => { ev.stopPropagation(); picker.style.display === 'flex' ? closePicker() : openPicker(); };
-
-  const del = document.createElement('button');
-  del.className = 'sticker-ctrl-btn';
-  del.textContent = '✕';
-  del.style.background = '#FF6B6B';
-  del.addEventListener('touchend', ev => { ev.preventDefault(); picker.remove(); el.remove(); });
-  del.onclick = () => { picker.remove(); el.remove(); };
-
-  ctrl.appendChild(sizeUp);
-  ctrl.appendChild(sizeDn);
   ctrl.appendChild(frameBtn);
+
+  ctrl.appendChild(mkBtn('↑', null, () => { el.style.zIndex = (parseInt(el.style.zIndex)||10) + 1; }));
+  ctrl.appendChild(mkBtn('↓', null, () => { el.style.zIndex = Math.max(1, (parseInt(el.style.zIndex)||10) - 1); }));
+  ctrl.appendChild(mkBtn('⧉', null, () => { placePhoto(src); }));
+
+  const del = mkBtn('✕', '#FF6B6B', () => { picker.remove(); el.remove(); });
   ctrl.appendChild(del);
+
   el.appendChild(ctrl);
 
   // 탭으로 selected 토글 (touchend로 드래그와 충돌 방지)
@@ -2393,29 +2531,27 @@ function placeSticker(emoji, x, y) {
   el.style.left = x + 'px';
   el.style.top  = y + 'px';
 
-  // controls
+  let rot = 0;
   const ctrl = document.createElement('div');
   ctrl.className = 'sticker-controls';
 
-  const sizeUp = document.createElement('button');
-  sizeUp.className = 'sticker-ctrl-btn';
-  sizeUp.textContent = '+';
-  sizeUp.onclick = () => { el.style.fontSize = (parseInt(el.style.fontSize||32) + 6) + 'px'; };
+  function mkSBtn(text, bg, action) {
+    const b = document.createElement('button');
+    b.className = 'sticker-ctrl-btn';
+    b.textContent = text;
+    if (bg) b.style.background = bg;
+    b.addEventListener('touchend', ev => { ev.preventDefault(); ev.stopPropagation(); action(); });
+    b.onclick = ev => { ev.stopPropagation(); action(); };
+    return b;
+  }
 
-  const sizeDn = document.createElement('button');
-  sizeDn.className = 'sticker-ctrl-btn';
-  sizeDn.textContent = '–';
-  sizeDn.onclick = () => { el.style.fontSize = Math.max(12, (parseInt(el.style.fontSize||32) - 6)) + 'px'; };
-
-  const del = document.createElement('button');
-  del.className = 'sticker-ctrl-btn';
-  del.textContent = '✕';
-  del.style.background = '#FF6B6B';
-  del.onclick = () => el.remove();
-
-  ctrl.appendChild(sizeUp);
-  ctrl.appendChild(sizeDn);
-  ctrl.appendChild(del);
+  ctrl.appendChild(mkSBtn('+', null, () => { el.style.fontSize = (parseInt(el.style.fontSize||32) + 6) + 'px'; }));
+  ctrl.appendChild(mkSBtn('–', null, () => { el.style.fontSize = Math.max(12, (parseInt(el.style.fontSize||32) - 6)) + 'px'; }));
+  ctrl.appendChild(mkSBtn('↻', null, () => { rot = (rot + 15) % 360; el.style.transform = `rotate(${rot}deg)`; }));
+  ctrl.appendChild(mkSBtn('↑', null, () => { el.style.zIndex = (parseInt(el.style.zIndex)||10) + 1; }));
+  ctrl.appendChild(mkSBtn('↓', null, () => { el.style.zIndex = Math.max(1, (parseInt(el.style.zIndex)||10) - 1); }));
+  ctrl.appendChild(mkSBtn('⧉', null, () => { placeSticker(emoji, parseInt(el.style.left)+20, parseInt(el.style.top)+20); }));
+  ctrl.appendChild(mkSBtn('✕', '#FF6B6B', () => el.remove()));
   el.appendChild(ctrl);
 
   makeDraggable(el);
@@ -2776,7 +2912,7 @@ function saveDayState() {
   dayStore[dateKey(currentDate)] = {
     tasks:    JSON.parse(JSON.stringify(tasks)),
     colorMap: {...colorMap},
-    comment:  document.getElementById('commentField').value,
+    quote:    document.getElementById('quoteField').value,
     memos:    Array.from(memoInputs).map(i => i.value),
   };
   saveUserDayStore();
@@ -2808,11 +2944,11 @@ function loadDayState(d) {
   if (saved) {
     saved.tasks.forEach(t => tasks.push(t));
     Object.assign(colorMap, saved.colorMap);
-    document.getElementById('commentField').value = saved.comment;
+    document.getElementById('quoteField').value = saved.quote || '';
     const memoInputs = document.querySelectorAll('#memoLines .memo-field');
     memoInputs.forEach((inp, i) => { inp.value = saved.memos[i] || ''; });
   } else {
-    document.getElementById('commentField').value = '';
+    document.getElementById('quoteField').value = '';
     document.querySelectorAll('#memoLines .memo-field').forEach(inp => { inp.value = ''; });
   }
 
