@@ -408,17 +408,16 @@ body {
   min-width: 100px;
 }
 
-/* MAIN BODY: tasks + timetable */
+/* MAIN BODY: tasks + timetable (세로 스택) */
 .body-row {
-  display: grid;
-  grid-template-columns: 1fr 148px;
-  gap: 0;
+  display: flex;
+  flex-direction: column;
   border-bottom: 1px solid var(--line-dark);
 }
 
 /* TASKS AREA */
 .tasks-area {
-  border-right: 1px solid var(--line-dark);
+  border-bottom: 1px solid var(--line-dark);
   padding: 0;
 }
 
@@ -633,6 +632,7 @@ body {
 .timetable-area {
   display: flex;
   flex-direction: column;
+  height: 220px;
 }
 
 .tt-header {
@@ -945,13 +945,22 @@ body.font-sans .memo-field { font-family: 'Noto Sans KR', sans-serif; }
 }
 .tpk-ok:hover { opacity: 0.7; }
 
-/* task highlight row */
-.task-row.hl-yellow { background: var(--highlight-yellow); }
-.task-row.hl-pink   { background: var(--highlight-pink); }
-.task-row.hl-blue   { background: var(--highlight-blue); }
-.task-row.hl-green  { background: var(--highlight-green); }
-.task-row.hl-peach  { background: var(--highlight-peach); }
-.task-row.hl-lavender { background: var(--highlight-lavender); }
+/* 체크 완료 하이라이트 라인 */
+.task-row.done {
+  position: relative;
+}
+.task-row.done::after {
+  content: '';
+  position: absolute;
+  left: 4px; right: 4px;
+  top: 50%;
+  height: 11px;
+  transform: translateY(-50%) rotate(-0.4deg);
+  background: rgba(255, 220, 80, 0.45);
+  border-radius: 3px;
+  pointer-events: none;
+  z-index: 0;
+}
 
 /* DAY NAVIGATION */
 .day-nav {
@@ -1445,17 +1454,6 @@ body.cal-mode .day-nav { display: none; }
   <button class="back-to-cal" id="backToCalBtn" onclick="showCalendar()">← 달력</button>
   <div class="toolbar-sep"></div>
 
-  <div class="tool-group">
-    <span class="tool-label">형광펜</span>
-    <button class="hl-btn active" data-color="none" onclick="setHighlight('none', this)" title="없음"></button>
-    <button class="hl-btn" data-color="yellow"   onclick="setHighlight('yellow', this)"></button>
-    <button class="hl-btn" data-color="pink"     onclick="setHighlight('pink', this)"></button>
-    <button class="hl-btn" data-color="blue"     onclick="setHighlight('blue', this)"></button>
-    <button class="hl-btn" data-color="green"    onclick="setHighlight('green', this)"></button>
-    <button class="hl-btn" data-color="peach"    onclick="setHighlight('peach', this)"></button>
-    <button class="hl-btn" data-color="lavender" onclick="setHighlight('lavender', this)"></button>
-  </div>
-
   <div class="toolbar-sep"></div>
 
   <div class="tool-group">
@@ -1805,7 +1803,7 @@ function renderTasks() {
 
   tasks.forEach((t, i) => {
     const li = document.createElement('li');
-    li.className = 'task-row';
+    li.className = 'task-row' + (t.done ? ' done' : '');
     const color = getTaskColor(t);
     li.style.borderLeft = `3px solid ${color}`;
 
@@ -1859,10 +1857,6 @@ function renderTasks() {
       ta.style.height = 'auto';
       ta.style.height = ta.scrollHeight + 'px';
     });
-    if (t.done) {
-      ta.style.textDecoration = 'line-through';
-      ta.style.color = 'var(--ink-lighter)';
-    }
 
     // checkmark
     const chk = document.createElement('div');
@@ -1873,8 +1867,7 @@ function renderTasks() {
       e.stopPropagation();
       tasks[i].done = !tasks[i].done;
       chk.innerHTML = makeCheckSVG(tasks[i].done);
-      ta.style.textDecoration = tasks[i].done ? 'line-through' : 'none';
-      ta.style.color = tasks[i].done ? 'var(--ink-lighter)' : 'var(--ink)';
+      li.classList.toggle('done', tasks[i].done);
       updateTotalTime();
     });
 
@@ -2262,16 +2255,31 @@ function placePhoto(src) {
     i.style.borderRadius = '6px';
   }
 
+  // picker를 body에 붙여서 overflow/transform 문제 방지
   const picker = document.createElement('div');
-  picker.style.cssText = 'display:none;position:fixed;background:white;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,0.18);padding:8px;z-index:9999;gap:4px;flex-wrap:wrap;width:200px;';
+  picker.style.cssText = 'display:none;position:fixed;background:white;border-radius:14px;box-shadow:0 6px 28px rgba(0,0,0,0.22);padding:10px;z-index:9999;gap:6px;flex-wrap:wrap;width:210px;';
   FRAMES.forEach(f => {
     const btn = document.createElement('button');
-    btn.style.cssText = 'font-size:11px;padding:4px 7px;border:1.5px solid #e0e0e0;border-radius:7px;background:white;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:3px;white-space:nowrap;';
+    btn.style.cssText = 'font-size:13px;padding:7px 10px;border:1.5px solid #e0e0e0;border-radius:8px;background:white;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:4px;white-space:nowrap;';
     btn.innerHTML = `<span>${f.icon}</span><span>${f.label}</span>`;
-    btn.onclick = ev => { ev.stopPropagation(); f.fn(el, img); picker.style.display = 'none'; };
+    btn.addEventListener('touchend', ev => { ev.preventDefault(); ev.stopPropagation(); f.fn(el, img); closePicker(); });
+    btn.onclick = ev => { ev.stopPropagation(); f.fn(el, img); closePicker(); };
     picker.appendChild(btn);
   });
-  el.appendChild(picker);
+  document.body.appendChild(picker);
+
+  function openPicker() {
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    picker.style.display = 'flex';
+    picker.style.left = Math.max(8, (vw - 210) / 2) + 'px';
+    picker.style.top  = (vh * 0.55) + 'px';
+    el.classList.add('picker-open');
+  }
+  function closePicker() {
+    picker.style.display = 'none';
+    el.classList.remove('picker-open');
+  }
 
   const ctrl = document.createElement('div');
   ctrl.className = 'sticker-controls';
@@ -2289,29 +2297,15 @@ function placePhoto(src) {
   const frameBtn = document.createElement('button');
   frameBtn.className = 'sticker-ctrl-btn';
   frameBtn.textContent = '▭';
-  frameBtn.title = '테두리 선택';
-  frameBtn.onclick = ev => {
-    ev.stopPropagation();
-    const isOpen = picker.style.display === 'flex';
-    if (isOpen) {
-      picker.style.display = 'none';
-      el.classList.remove('picker-open');
-    } else {
-      picker.style.display = 'flex';
-      el.classList.add('picker-open');
-      // 화면 중앙 하단에 띄우기 (모바일 대응)
-      const vw = window.innerWidth;
-      const vh = window.innerHeight;
-      picker.style.left = Math.max(8, (vw - 200) / 2) + 'px';
-      picker.style.top  = Math.min(vh - 160, vh * 0.6) + 'px';
-    }
-  };
+  frameBtn.addEventListener('touchend', ev => { ev.preventDefault(); ev.stopPropagation(); picker.style.display === 'flex' ? closePicker() : openPicker(); });
+  frameBtn.onclick = ev => { ev.stopPropagation(); picker.style.display === 'flex' ? closePicker() : openPicker(); };
 
   const del = document.createElement('button');
   del.className = 'sticker-ctrl-btn';
   del.textContent = '✕';
   del.style.background = '#FF6B6B';
-  del.onclick = () => el.remove();
+  del.addEventListener('touchend', ev => { ev.preventDefault(); picker.remove(); el.remove(); });
+  del.onclick = () => { picker.remove(); el.remove(); };
 
   ctrl.appendChild(sizeUp);
   ctrl.appendChild(sizeDn);
@@ -2319,27 +2313,22 @@ function placePhoto(src) {
   ctrl.appendChild(del);
   el.appendChild(ctrl);
 
-  // 스티커 탭하면 selected 토글 (모바일용 컨트롤 표시)
-  el.addEventListener('touchstart', e => {
-    if (e.target.closest('.sticker-ctrl-btn') || e.target.closest('.frame-picker-popup')) return;
+  // 탭으로 selected 토글 (touchend로 드래그와 충돌 방지)
+  let touchMoved = false;
+  el.addEventListener('touchstart', () => { touchMoved = false; }, { passive: true });
+  el.addEventListener('touchmove', () => { touchMoved = true; }, { passive: true });
+  el.addEventListener('touchend', e => {
+    if (touchMoved) return;
+    if (e.target.closest('.sticker-ctrl-btn')) return;
     document.querySelectorAll('.placed-sticker.selected').forEach(s => { if (s !== el) s.classList.remove('selected'); });
     el.classList.toggle('selected');
-  }, { passive: true });
-
-  // 바깥 클릭/탭 시 피커 닫기 (터치는 setTimeout으로 즉시 닫힘 방지)
-  document.addEventListener('click', e => {
-    if (!el.contains(e.target)) {
-      picker.style.display = 'none';
-      el.classList.remove('picker-open');
-    }
   });
-  document.addEventListener('touchstart', e => {
-    if (!el.contains(e.target)) {
-      setTimeout(() => {
-        picker.style.display = 'none';
-        el.classList.remove('picker-open');
-        el.classList.remove('selected');
-      }, 50);
+
+  // 바깥 탭 시 닫기
+  document.addEventListener('touchend', e => {
+    if (!el.contains(e.target) && !picker.contains(e.target)) {
+      closePicker();
+      el.classList.remove('selected');
     }
   }, { passive: true });
 
@@ -2385,24 +2374,22 @@ function placeSticker(emoji, x, y) {
 
 function makeDraggable(el) {
   let ox, oy, startX, startY;
+  let pinching = false, initDist = 0, initW = 0;
 
-  function startDrag(clientX, clientY) {
-    startX = clientX;
-    startY = clientY;
-    ox = el.offsetLeft;
-    oy = el.offsetTop;
-  }
-  function onMove(clientX, clientY) {
-    el.style.left = (ox + clientX - startX) + 'px';
-    el.style.top  = (oy + clientY - startY) + 'px';
+  function getDist(t1, t2) {
+    return Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
   }
 
   // 마우스
   el.addEventListener('mousedown', e => {
     if (e.target.closest('.sticker-ctrl-btn')) return;
     e.preventDefault();
-    startDrag(e.clientX, e.clientY);
-    const move = mv => onMove(mv.clientX, mv.clientY);
+    startX = e.clientX; startY = e.clientY;
+    ox = el.offsetLeft;  oy = el.offsetTop;
+    const move = mv => {
+      el.style.left = (ox + mv.clientX - startX) + 'px';
+      el.style.top  = (oy + mv.clientY - startY) + 'px';
+    };
     const up = () => {
       document.removeEventListener('mousemove', move);
       document.removeEventListener('mouseup', up);
@@ -2411,23 +2398,43 @@ function makeDraggable(el) {
     document.addEventListener('mouseup', up);
   });
 
-  // 터치
+  // 터치 (드래그 + 핀치줌)
   el.addEventListener('touchstart', e => {
     if (e.target.closest('.sticker-ctrl-btn')) return;
+    if (e.touches.length === 2) {
+      // 핀치 시작
+      pinching = true;
+      initDist = getDist(e.touches[0], e.touches[1]);
+      initW = el.offsetWidth;
+      e.preventDefault();
+      return;
+    }
+    pinching = false;
     e.preventDefault();
     const t = e.touches[0];
-    startDrag(t.clientX, t.clientY);
-    const move = mv => {
-      const tt = mv.touches[0];
-      onMove(tt.clientX, tt.clientY);
-    };
-    const up = () => {
-      el.removeEventListener('touchmove', move);
-      el.removeEventListener('touchend', up);
-    };
-    el.addEventListener('touchmove', move, { passive: false });
-    el.addEventListener('touchend', up);
+    startX = t.clientX; startY = t.clientY;
+    ox = el.offsetLeft;  oy = el.offsetTop;
   }, { passive: false });
+
+  el.addEventListener('touchmove', e => {
+    if (e.target.closest('.sticker-ctrl-btn')) return;
+    e.preventDefault();
+    if (e.touches.length === 2 && pinching) {
+      // 핀치줌
+      const dist = getDist(e.touches[0], e.touches[1]);
+      el.style.width = Math.max(40, initW * (dist / initDist)) + 'px';
+      return;
+    }
+    if (e.touches.length === 1 && !pinching) {
+      const t = e.touches[0];
+      el.style.left = (ox + t.clientX - startX) + 'px';
+      el.style.top  = (oy + t.clientY - startY) + 'px';
+    }
+  }, { passive: false });
+
+  el.addEventListener('touchend', () => {
+    if (pinching) pinching = false;
+  });
 }
 
 // ─── 구글 로그인 ────────────────────────────────────────────────────────────
