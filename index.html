@@ -1124,6 +1124,34 @@ body.font-sans .memo-field { font-family: 'Noto Sans KR', sans-serif; }
 .google-btn:active { transform: scale(0.98); }
 .google-btn svg { flex-shrink: 0; }
 
+.nickname-input {
+  width: 100%;
+  border: 1.5px solid #E0E0E0;
+  border-radius: 12px;
+  padding: 13px 16px;
+  font-size: 15px;
+  font-family: inherit;
+  color: #333;
+  outline: none;
+  margin-bottom: 10px;
+  text-align: center;
+}
+.nickname-input:focus { border-color: #999; }
+.nickname-btn {
+  width: 100%;
+  background: #1a1a1a;
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  padding: 13px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: transform 0.1s;
+}
+.nickname-btn:active { transform: scale(0.98); }
+
 /* 툴바 사용자 영역 */
 .user-area {
   display: flex;
@@ -1454,16 +1482,26 @@ body.cal-mode .day-nav { display: none; }
   <div class="login-card">
     <div class="login-title">시작하기</div>
     <p class="login-desc">구글 계정으로 로그인하면<br>내 플래너가 저장돼요</p>
-    <button class="google-btn" onclick="triggerGoogleLogin()">
-      <svg width="18" height="18" viewBox="0 0 18 18">
-        <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"/>
-        <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"/>
-        <path fill="#FBBC05" d="M3.964 10.707c-.18-.54-.282-1.117-.282-1.707s.102-1.167.282-1.707V4.961H.957C.347 6.175 0 7.55 0 9s.348 2.825.957 4.039l3.007-2.332z"/>
-        <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.961L3.964 7.293C4.672 5.166 6.656 3.58 9 3.58z"/>
-      </svg>
-      Google로 로그인
-    </button>
-    <div id="googleOneTap"></div>
+    <!-- 로그인 단계 -->
+    <div id="loginStep">
+      <button class="google-btn" onclick="triggerGoogleLogin()">
+        <svg width="18" height="18" viewBox="0 0 18 18">
+          <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"/>
+          <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"/>
+          <path fill="#FBBC05" d="M3.964 10.707c-.18-.54-.282-1.117-.282-1.707s.102-1.167.282-1.707V4.961H.957C.347 6.175 0 7.55 0 9s.348 2.825.957 4.039l3.007-2.332z"/>
+          <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.961L3.964 7.293C4.672 5.166 6.656 3.58 9 3.58z"/>
+        </svg>
+        Google로 로그인
+      </button>
+    </div>
+
+    <!-- 닉네임 설정 단계 (최초 로그인 시) -->
+    <div id="nicknameStep" style="display:none;">
+      <p class="login-desc" style="margin-bottom:14px;">플래니에서 쓸 닉네임을 정해주세요</p>
+      <input id="nicknameInput" class="nickname-input" type="text" maxlength="12"
+             placeholder="닉네임 (최대 12자)" onkeydown="if(event.key==='Enter')confirmNickname()"/>
+      <button class="nickname-btn" onclick="confirmNickname()">시작하기</button>
+    </div>
   </div>
 </div>
 
@@ -2694,7 +2732,37 @@ function parseJwt(token) {
 
 function handleCredentialResponse(response) {
   const user = parseJwt(response.credential);
-  loginAs(user);
+  handleGoogleUser({ sub: user.sub, picture: user.picture, email: user.email });
+}
+
+// 구글 인증 성공 후: 닉네임(플래니 계정) 확인
+let pendingGoogleUser = null;
+function handleGoogleUser(googleUser) {
+  const nickname = localStorage.getItem('plannie_nickname_' + googleUser.sub);
+  if (nickname) {
+    // 이미 플래니 계정 있음 → 바로 로그인
+    loginAs({ sub: googleUser.sub, name: nickname, picture: googleUser.picture, email: googleUser.email });
+  } else {
+    // 최초 로그인 → 닉네임 설정 단계 표시
+    pendingGoogleUser = googleUser;
+    document.getElementById('loginStep').style.display = 'none';
+    document.getElementById('nicknameStep').style.display = 'block';
+    setTimeout(() => document.getElementById('nicknameInput').focus(), 100);
+  }
+}
+
+function confirmNickname() {
+  const input = document.getElementById('nicknameInput');
+  const nickname = input.value.trim();
+  if (!nickname) { input.focus(); return; }
+  if (!pendingGoogleUser) return;
+  localStorage.setItem('plannie_nickname_' + pendingGoogleUser.sub, nickname);
+  loginAs({ sub: pendingGoogleUser.sub, name: nickname, picture: pendingGoogleUser.picture, email: pendingGoogleUser.email });
+  // 단계 초기화
+  document.getElementById('nicknameStep').style.display = 'none';
+  document.getElementById('loginStep').style.display = 'block';
+  input.value = '';
+  pendingGoogleUser = null;
 }
 
 function loginAs(user) {
@@ -2729,7 +2797,9 @@ function handleLogout() {
   document.body.classList.remove('cal-mode');
   document.body.classList.add('login-mode');
 
-  google.accounts.id.disableAutoSelect();
+  // 로그인 화면 초기 상태로
+  document.getElementById('loginStep').style.display = 'block';
+  document.getElementById('nicknameStep').style.display = 'none';
 }
 
 function getRedirectUri() {
@@ -2852,7 +2922,7 @@ function initGoogleLogin() {
       headers: { Authorization: 'Bearer ' + accessToken }
     })
     .then(r => r.json())
-    .then(user => loginAs({ sub: user.sub, name: user.name, picture: user.picture }))
+    .then(user => handleGoogleUser({ sub: user.sub, picture: user.picture, email: user.email }))
     .catch(() => alert('로그인 처리 중 오류가 발생했어요. 다시 시도해주세요.'));
     return;
   }
