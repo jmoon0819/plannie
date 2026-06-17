@@ -263,11 +263,12 @@ body {
 .header-row {
   display: grid;
   grid-template-columns: 1fr auto;
-  gap: 20px;
+  gap: 8px;
   align-items: start;
   margin-bottom: 6px;
   border-bottom: 2px solid var(--ink);
   padding-bottom: 10px;
+  overflow: hidden;
 }
 
 .date-area {}
@@ -661,6 +662,29 @@ body {
   flex-direction: column;
   height: 220px;
 }
+.subj-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px 8px;
+  padding: 6px 4px 4px;
+  border-top: 1px solid var(--line);
+  min-height: 0;
+}
+.subj-chip {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-family: inherit;
+  color: var(--ink-light);
+}
+.subj-chip-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.subj-chip-name { font-weight: 700; color: var(--ink); }
+.subj-chip-time { color: var(--ink-light); }
 
 .tt-header {
   font-size: 8px;
@@ -734,6 +758,8 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
   line-height: 1;
+  text-align: center;
+  width: 100%;
 }
 
 /* MEMO AREA */
@@ -1428,15 +1454,6 @@ body.cal-mode .day-nav { display: none; }
   <div class="login-card">
     <div class="login-title">시작하기</div>
     <p class="login-desc">구글 계정으로 로그인하면<br>내 플래너가 저장돼요</p>
-    <button class="google-btn" onclick="triggerGoogleLogin()">
-      <svg width="18" height="18" viewBox="0 0 18 18">
-        <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"/>
-        <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"/>
-        <path fill="#FBBC05" d="M3.964 10.707c-.18-.54-.282-1.117-.282-1.707s.102-1.167.282-1.707V4.961H.957C.347 6.175 0 7.55 0 9s.348 2.825.957 4.039l3.007-2.332z"/>
-        <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.961L3.964 7.293C4.672 5.166 6.656 3.58 9 3.58z"/>
-      </svg>
-      Google로 로그인
-    </button>
     <div id="googleOneTap"></div>
   </div>
 </div>
@@ -1547,12 +1564,6 @@ body.cal-mode .day-nav { display: none; }
       </div>
     </div>
 
-    <!-- 오늘의 한마디 -->
-    <div class="quote-row">
-      <div class="quote-icon">✦</div>
-      <input class="quote-field" id="quoteField" placeholder="오늘의 한마디, 기분, 승리..."/>
-    </div>
-
     <!-- TOTAL TIME -->
     <div class="total-row">
       <div class="total-left">TOTAL TIME</div>
@@ -1589,6 +1600,8 @@ body.cal-mode .day-nav { display: none; }
             <div class="tt-bar-col" id="ttBarCol"></div>
           </div>
         </div>
+        <!-- 과목별 공부시간 합계 -->
+        <div class="subj-summary" id="subjSummary"></div>
       </div>
 
     </div><!-- /body-row -->
@@ -1830,6 +1843,7 @@ function showTimePicker(e, task, timeBtn) {
     task.time = `${s}~${en}`;
     timeBtn.textContent = task.time;
     renderTimetable();
+    updateSubjSummary();
     closeAllPopups();
   });
   popup.appendChild(ok);
@@ -1968,6 +1982,38 @@ function updateTotalTime() {
   const emoji = totalMin === 0 ? '' : h >= 6 ? ' 🔥' : h >= 2 ? ' ☀️' : ' 🧊';
   document.getElementById('totalTime').value =
     totalMin === 0 ? '0H 00M' : `${h}H ${String(m).padStart(2,'0')}M${emoji}`;
+  updateSubjSummary();
+}
+
+function updateSubjSummary() {
+  const el = document.getElementById('subjSummary');
+  if (!el) return;
+
+  // 과목별 분 합산 (시간 있는 것만)
+  const map = {}; // subject → { min, colorKey }
+  tasks.forEach(t => {
+    if (!t.subject) return;
+    const range = parseTimeRange(t.time);
+    if (!range) return;
+    const min = (range.end - range.start) * 30;
+    if (!map[t.subject]) map[t.subject] = { min: 0, colorKey: t.colorKey };
+    map[t.subject].min += min;
+  });
+
+  el.innerHTML = '';
+  Object.entries(map).forEach(([subj, data]) => {
+    const h = Math.floor(data.min / 60);
+    const m = data.min % 60;
+    const timeStr = h > 0 ? `${h}H ${String(m).padStart(2,'0')}M` : `${m}M`;
+    const color = colorMap[data.colorKey] || '#ccc';
+
+    const chip = document.createElement('div');
+    chip.className = 'subj-chip';
+    chip.innerHTML = `<div class="subj-chip-dot" style="background:${color};"></div>`
+      + `<span class="subj-chip-name">${subj}</span>`
+      + `<span class="subj-chip-time">${timeStr}</span>`;
+    el.appendChild(chip);
+  });
 }
 
 // Tab / Enter 으로 과목 → 할일 이동
@@ -2044,6 +2090,9 @@ function renderTimetable() {
     const lbl = document.createElement('div');
     lbl.className = 'tt-block-label';
     lbl.textContent = t.subject || t.text;
+    const blockH = (range.end - range.start) * SLOT_H;
+    const fs = Math.min(16, Math.max(8, Math.floor(blockH * 0.55)));
+    lbl.style.fontSize = fs + 'px';
     block.appendChild(lbl);
     barCol.appendChild(block);
   });
@@ -2624,7 +2673,7 @@ function makeDraggable(el) {
 }
 
 // ─── 구글 로그인 ────────────────────────────────────────────────────────────
-const GOOGLE_CLIENT_ID = 'YOUR_CLIENT_ID_HERE'; // ← Google Cloud Console에서 발급한 Client ID 입력
+const GOOGLE_CLIENT_ID = '701451926205-2vhdj74cbsds1f8etonh691vgrsvf4e7.apps.googleusercontent.com';
 
 let currentUser = null;
 
@@ -2675,7 +2724,27 @@ function handleLogout() {
 }
 
 function triggerGoogleLogin() {
-  google.accounts.id.prompt();
+  if (typeof google === 'undefined') {
+    alert('Google 로그인 라이브러리를 불러오는 중입니다. 잠시 후 다시 눌러주세요.');
+    return;
+  }
+  const tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: GOOGLE_CLIENT_ID,
+    scope: 'openid profile email',
+    callback: async (tokenResponse) => {
+      if (tokenResponse.error) { alert('로그인 실패: ' + tokenResponse.error); return; }
+      try {
+        const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+          headers: { Authorization: 'Bearer ' + tokenResponse.access_token }
+        });
+        const user = await res.json();
+        loginAs({ sub: user.sub, name: user.name, picture: user.picture });
+      } catch(e) {
+        alert('사용자 정보를 가져오지 못했어요: ' + e.message);
+      }
+    }
+  });
+  tokenClient.requestAccessToken({ prompt: 'select_account' });
 }
 
 function loadUserDayStore() {
@@ -2768,7 +2837,7 @@ function getMainDday() {
 
 function initGoogleLogin() {
   // 테스트 모드: 구글 로그인 없이 자동 로그인
-  const TEST_MODE = true;
+  const TEST_MODE = false;
   if (TEST_MODE) {
     loginAs({ sub: 'test_user_001', name: '테스트', picture: '' });
     return;
@@ -2779,19 +2848,19 @@ function initGoogleLogin() {
     loginAs(JSON.parse(saved));
     return;
   }
-  // 구글 One Tap 초기화
-  if (typeof google !== 'undefined') {
+  // Google Sign In 버튼 렌더링
+  function render() {
+    if (typeof google === 'undefined') { setTimeout(render, 300); return; }
     google.accounts.id.initialize({
       client_id: GOOGLE_CLIENT_ID,
       callback: handleCredentialResponse,
-      auto_select: true,
     });
     google.accounts.id.renderButton(
       document.getElementById('googleOneTap'),
-      { theme: 'outline', size: 'large', width: 280 }
+      { theme: 'outline', size: 'large', width: 280, locale: 'ko' }
     );
-    google.accounts.id.prompt();
   }
+  render();
 }
 
 // ─── CALENDAR ─────────────────────────────────────────────────────────────
