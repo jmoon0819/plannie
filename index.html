@@ -3521,6 +3521,7 @@ function dateKey(d) {
 }
 
 function saveDayState() {
+  clearTimeout(_saveTimer); // 대기 중인 디바운스 저장 취소 (날짜 전환 race 방지)
   const memoInputs = document.querySelectorAll('#memoLines .memo-field');
   const key = dateKey(currentDate);
   dayStore[key] = {
@@ -3548,6 +3549,7 @@ function updateNavLabels() {
 }
 
 function loadDayState(d) {
+  clearTimeout(_saveTimer); // 로드 중 유령 저장 방지
   applyDateToHeader(d);
   updateNavLabels();
 
