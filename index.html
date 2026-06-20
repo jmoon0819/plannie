@@ -1053,12 +1053,79 @@ body.font-sans .memo-field { font-family: 'Noto Sans KR', sans-serif; }
 .login-screen {
   width: 100%;
   max-width: 400px;
-  display: flex;
+  display: none;
   flex-direction: column;
   align-items: center;
   padding: 60px 20px;
   animation: fadeIn 0.3s ease;
 }
+body.login-mode .login-screen { display: flex; }
+
+/* ─── 홈 허브 / 통계 화면 ─── */
+.home-screen, .stats-screen {
+  width: 100%;
+  max-width: 440px;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  padding: 44px 20px;
+  animation: fadeIn 0.3s ease;
+}
+body.home-mode  .home-screen  { display: flex; }
+body.stats-mode .stats-screen { display: flex; }
+
+/* 홈/통계 모드일 때 다른 화면 전부 숨김 */
+body.home-mode .toolbar,  body.home-mode .cal-screen,  body.home-mode .planner-wrap,  body.home-mode .day-nav,  body.home-mode .login-screen,
+body.stats-mode .toolbar, body.stats-mode .cal-screen, body.stats-mode .planner-wrap, body.stats-mode .day-nav, body.stats-mode .login-screen { display: none !important; }
+
+.home-greeting { font-size: 15px; color: var(--ink-light); margin-bottom: 4px; font-weight: 600; }
+.home-logo { font-family: 'Gothic A1','Noto Sans KR',sans-serif; font-weight: 900; font-size: 34px; color: #111; margin-bottom: 32px; }
+.home-cards { display: flex; flex-direction: column; gap: 16px; width: 100%; }
+.home-card {
+  background: #fff;
+  border: 1.5px solid #EDEDED;
+  border-radius: 20px;
+  padding: 24px 22px;
+  cursor: pointer;
+  transition: transform 0.12s, box-shadow 0.12s, border-color 0.12s;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.home-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.08); border-color: #ddd; }
+.home-card:active { transform: scale(0.98); }
+.home-card-icon { font-size: 34px; flex-shrink: 0; }
+.home-card-body { flex: 1; }
+.home-card-title { font-size: 17px; font-weight: 800; color: #1a1a1a; margin-bottom: 3px; }
+.home-card-desc { font-size: 12px; color: #999; line-height: 1.4; }
+.home-card-arrow { font-size: 20px; color: #ccc; }
+.home-logout { margin-top: 30px; font-size: 12px; color: #BBB; background: none; border: none; cursor: pointer; text-decoration: underline; font-family: inherit; }
+
+/* 통계 화면 */
+.stats-header { display: flex; align-items: center; justify-content: space-between; width: 100%; margin-bottom: 18px; }
+.stats-back { font-size: 13px; color: #888; background: none; border: 1px solid #E5E5E5; border-radius: 8px; padding: 6px 12px; cursor: pointer; font-family: inherit; }
+.stats-title { font-size: 18px; font-weight: 800; color: #1a1a1a; }
+.stats-toggle { display: flex; gap: 6px; background: #F0F0F0; border-radius: 10px; padding: 4px; margin-bottom: 22px; }
+.stats-toggle button { flex: 1; border: none; background: none; padding: 8px 20px; border-radius: 8px; font-size: 13px; font-weight: 700; color: #999; cursor: pointer; font-family: inherit; }
+.stats-toggle button.active { background: #fff; color: #1a1a1a; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
+.donut-wrap { position: relative; width: 180px; height: 180px; margin-bottom: 8px; }
+.donut-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.donut-pct { font-size: 38px; font-weight: 900; color: #1a1a1a; line-height: 1; }
+.donut-label { font-size: 11px; color: #aaa; margin-top: 4px; letter-spacing: 1px; }
+.stats-summary-row { display: flex; gap: 12px; width: 100%; margin: 20px 0 8px; }
+.stats-box { flex: 1; background: #fff; border: 1.5px solid #EDEDED; border-radius: 16px; padding: 16px; text-align: center; }
+.stats-box-num { font-size: 22px; font-weight: 900; color: #1a1a1a; }
+.stats-box-lbl { font-size: 11px; color: #999; margin-top: 4px; }
+.stats-subj-title { width: 100%; font-size: 12px; font-weight: 700; color: #999; letter-spacing: 1px; margin: 18px 0 10px; }
+.stats-subj-list { width: 100%; display: flex; flex-direction: column; gap: 10px; }
+.stats-subj-item { display: flex; align-items: center; gap: 10px; }
+.stats-subj-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.stats-subj-name { font-size: 13px; font-weight: 700; color: #333; min-width: 50px; }
+.stats-subj-bar { flex: 1; height: 8px; background: #F0F0F0; border-radius: 4px; overflow: hidden; }
+.stats-subj-bar-fill { height: 100%; border-radius: 4px; }
+.stats-subj-time { font-size: 12px; color: #888; min-width: 56px; text-align: right; }
+.stats-empty { color: #bbb; font-size: 13px; padding: 30px 0; text-align: center; }
 
 .login-logo {
   font-size: 36px;
@@ -1497,9 +1564,72 @@ body.cal-mode .day-nav { display: none; }
   </div>
 </div>
 
+<!-- HOME 허브 -->
+<div class="home-screen" id="homeScreen">
+  <div class="home-greeting" id="homeGreeting">안녕하세요</div>
+  <div class="home-logo">플래니</div>
+  <div class="home-cards">
+    <div class="home-card" onclick="showStats()">
+      <div class="home-card-icon">📊</div>
+      <div class="home-card-body">
+        <div class="home-card-title">주간 통계</div>
+        <div class="home-card-desc">이번 주 공부 이행률과 시간을 한눈에</div>
+      </div>
+      <div class="home-card-arrow">›</div>
+    </div>
+    <div class="home-card" onclick="goToPlanner()">
+      <div class="home-card-icon">📝</div>
+      <div class="home-card-body">
+        <div class="home-card-title">계획 짜기</div>
+        <div class="home-card-desc">달력에서 날짜를 골라 하루를 계획해요</div>
+      </div>
+      <div class="home-card-arrow">›</div>
+    </div>
+  </div>
+  <button class="home-logout" onclick="handleLogout()">로그아웃</button>
+</div>
+
+<!-- 통계 화면 -->
+<div class="stats-screen" id="statsScreen">
+  <div class="stats-header">
+    <button class="stats-back" onclick="showHome()">← 홈</button>
+    <div class="stats-title">공부 통계</div>
+    <div style="width:48px;"></div>
+  </div>
+  <div class="stats-toggle">
+    <button id="statsWeekBtn" class="active" onclick="setStatsRange('week')">주간</button>
+    <button id="statsDayBtn" onclick="setStatsRange('day')">일간</button>
+  </div>
+  <div class="donut-wrap">
+    <svg width="180" height="180" viewBox="0 0 180 180">
+      <circle cx="90" cy="90" r="74" fill="none" stroke="#F0F0F0" stroke-width="18"/>
+      <circle id="donutArc" cx="90" cy="90" r="74" fill="none" stroke="#FF8FA3" stroke-width="18"
+              stroke-linecap="round" stroke-dasharray="465" stroke-dashoffset="465"
+              transform="rotate(-90 90 90)" style="transition:stroke-dashoffset 0.6s ease;"/>
+    </svg>
+    <div class="donut-center">
+      <div class="donut-pct" id="donutPct">0%</div>
+      <div class="donut-label">이행률</div>
+    </div>
+  </div>
+  <div class="stats-summary-row">
+    <div class="stats-box">
+      <div class="stats-box-num" id="statTotalTime">0H</div>
+      <div class="stats-box-lbl">총 공부시간</div>
+    </div>
+    <div class="stats-box">
+      <div class="stats-box-num" id="statTaskRatio">0/0</div>
+      <div class="stats-box-lbl">완료한 계획</div>
+    </div>
+  </div>
+  <div class="stats-subj-title">과목별 공부시간</div>
+  <div class="stats-subj-list" id="statsSubjList"></div>
+</div>
+
 <!-- CALENDAR SCREEN -->
 <div class="cal-screen" id="calScreen">
   <div class="cal-card">
+    <button class="stats-back" style="align-self:flex-start;margin-bottom:10px;" onclick="showHome()">← 홈</button>
     <div class="cal-top">
       <div class="cal-title" id="calTitle">2026년 <span id="calMonthName">6월</span></div>
       <div class="cal-nav-arrows">
@@ -2769,10 +2899,120 @@ function loginAs(user) {
   document.getElementById('userName').textContent = user.name?.split(' ')[0] || '';
   document.getElementById('userArea').style.display = 'flex';
 
-  // 로그인 화면 → 달력 화면
-  document.body.classList.remove('login-mode');
-  document.body.classList.add('cal-mode');
+  // 로그인 화면 → 홈 허브
+  showHome();
+}
+
+// ─── 화면 모드 전환 ─────────────────────────────────────────────────────────
+function setMode(mode) {
+  document.body.classList.remove('login-mode', 'home-mode', 'stats-mode', 'cal-mode');
+  if (mode) document.body.classList.add(mode);
+}
+
+function updateHomeGreeting() {
+  const n = currentUser?.name || '';
+  document.getElementById('homeGreeting').textContent = n ? `${n}님, 안녕하세요` : '안녕하세요';
+}
+
+function showHome() {
+  // planner에서 왔으면 저장
+  if (document.getElementById('backToCalBtn')?.style.display === 'inline-flex') saveDayState();
+  setMode('home-mode');
+  updateHomeGreeting();
+}
+
+function goToPlanner() {
+  setMode('cal-mode');
+  document.getElementById('backToCalBtn').style.display = 'none';
+  calViewDate = new Date(currentDate);
   buildCalendar();
+}
+
+// ─── 통계 ───────────────────────────────────────────────────────────────────
+let currentStatsRange = 'week';
+
+function showStats() {
+  if (document.getElementById('backToCalBtn')?.style.display === 'inline-flex') saveDayState();
+  setMode('stats-mode');
+  setStatsRange(currentStatsRange);
+}
+
+function setStatsRange(range) {
+  currentStatsRange = range;
+  document.getElementById('statsWeekBtn').classList.toggle('active', range === 'week');
+  document.getElementById('statsDayBtn').classList.toggle('active', range === 'day');
+  renderStats();
+}
+
+function collectStats(range) {
+  const keys = [];
+  const base = new Date(); // 오늘 기준
+  base.setHours(0, 0, 0, 0);
+  if (range === 'day') {
+    keys.push(dateKey(base));
+  } else {
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(base); d.setDate(d.getDate() - i);
+      keys.push(dateKey(d));
+    }
+  }
+  let totalTasks = 0, doneTasks = 0, totalMin = 0;
+  const subjMin = {}; // subject → { min, color }
+  keys.forEach(k => {
+    const day = dayStore[k];
+    if (!day || !day.tasks) return;
+    day.tasks.forEach(t => {
+      totalTasks++;
+      const r = parseTimeRange(t.time);
+      const min = r ? (r.end - r.start) * 30 : 0;
+      if (t.done) {
+        doneTasks++;
+        totalMin += min;
+        if (t.subject && min > 0) {
+          if (!subjMin[t.subject]) {
+            subjMin[t.subject] = { min: 0, color: (day.colorMap && day.colorMap[t.colorKey]) || '#ccc' };
+          }
+          subjMin[t.subject].min += min;
+        }
+      }
+    });
+  });
+  return { totalTasks, doneTasks, totalMin, subjMin };
+}
+
+function fmtMin(min) {
+  const h = Math.floor(min / 60), m = min % 60;
+  if (h > 0) return m > 0 ? `${h}H ${String(m).padStart(2,'0')}M` : `${h}H`;
+  return `${m}M`;
+}
+
+function renderStats() {
+  const s = collectStats(currentStatsRange);
+  const pct = s.totalTasks ? Math.round(s.doneTasks / s.totalTasks * 100) : 0;
+
+  document.getElementById('donutPct').textContent = pct + '%';
+  const circ = 2 * Math.PI * 74;
+  document.getElementById('donutArc').setAttribute('stroke-dashoffset', circ * (1 - pct / 100));
+
+  document.getElementById('statTotalTime').textContent = fmtMin(s.totalMin);
+  document.getElementById('statTaskRatio').textContent = `${s.doneTasks}/${s.totalTasks}`;
+
+  const list = document.getElementById('statsSubjList');
+  const entries = Object.entries(s.subjMin).filter(([, v]) => v.min > 0).sort((a, b) => b[1].min - a[1].min);
+  if (entries.length === 0) {
+    list.innerHTML = '<div class="stats-empty">아직 완료한 공부가 없어요</div>';
+    return;
+  }
+  const max = entries[0][1].min;
+  list.innerHTML = entries.map(([subj, v]) => {
+    const w = Math.round(v.min / max * 100);
+    return `<div class="stats-subj-item">
+      <div class="stats-subj-dot" style="background:${v.color}"></div>
+      <div class="stats-subj-name">${subj}</div>
+      <div class="stats-subj-bar"><div class="stats-subj-bar-fill" style="width:${w}%;background:${v.color}"></div></div>
+      <div class="stats-subj-time">${fmtMin(v.min)}</div>
+    </div>`;
+  }).join('');
 }
 
 function handleLogout() {
@@ -2786,8 +3026,7 @@ function handleLogout() {
   Object.keys(colorMap).forEach(k => delete colorMap[k]);
 
   document.getElementById('userArea').style.display = 'none';
-  document.body.classList.remove('cal-mode');
-  document.body.classList.add('login-mode');
+  setMode('login-mode');
 
   // 로그인 화면 초기 상태로
   document.getElementById('loginStep').style.display = 'block';
@@ -3090,7 +3329,6 @@ function saveDayState() {
   dayStore[dateKey(currentDate)] = {
     tasks:    JSON.parse(JSON.stringify(tasks)),
     colorMap: {...colorMap},
-    quote:    document.getElementById('quoteField').value,
     memos:    Array.from(memoInputs).map(i => i.value),
   };
   saveUserDayStore();
@@ -3122,11 +3360,9 @@ function loadDayState(d) {
   if (saved) {
     saved.tasks.forEach(t => tasks.push(t));
     Object.assign(colorMap, saved.colorMap);
-    document.getElementById('quoteField').value = saved.quote || '';
     const memoInputs = document.querySelectorAll('#memoLines .memo-field');
-    memoInputs.forEach((inp, i) => { inp.value = saved.memos[i] || ''; });
+    memoInputs.forEach((inp, i) => { inp.value = (saved.memos && saved.memos[i]) || ''; });
   } else {
-    document.getElementById('quoteField').value = '';
     document.querySelectorAll('#memoLines .memo-field').forEach(inp => { inp.value = ''; });
   }
 
