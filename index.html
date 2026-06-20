@@ -5,8 +5,27 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>플래니 — 오늘의 플래너</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Nanum+Pen+Script&family=Gaegu:wght@300;400;700&family=Black+Han+Sans&family=Gothic+A1:wght@900&display=swap" rel="stylesheet"/>
-<script src="https://accounts.google.com/gsi/client" async defer></script>
 <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyBaCikJ2pviOR1JfOQuGKv7H17dRKHj0jw",
+    authDomain: "plannie-7c619.firebaseapp.com",
+    projectId: "plannie-7c619",
+    storageBucket: "plannie-7c619.firebasestorage.app",
+    messagingSenderId: "1078874073584",
+    appId: "1:1078874073584:web:1e704bd502852bd2749535",
+    measurementId: "G-BZRR6GMY69"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const fbAuth = firebase.auth();
+  const fbDb = firebase.firestore();
+  // 관리자 이메일 (이 계정으로 로그인하면 관리자 페이지 접근)
+  const ADMIN_EMAIL = 'jmoon0819@gmail.com';
+</script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 
@@ -1061,8 +1080,8 @@ body.font-sans .memo-field { font-family: 'Noto Sans KR', sans-serif; }
 }
 body.login-mode .login-screen { display: flex; }
 
-/* ─── 홈 허브 / 통계 화면 ─── */
-.home-screen, .stats-screen {
+/* ─── 홈 허브 / 통계 / 관리자 화면 ─── */
+.home-screen, .stats-screen, .admin-screen {
   width: 100%;
   max-width: 440px;
   display: none;
@@ -1073,10 +1092,12 @@ body.login-mode .login-screen { display: flex; }
 }
 body.home-mode  .home-screen  { display: flex; }
 body.stats-mode .stats-screen { display: flex; }
+body.admin-mode .admin-screen { display: flex; }
 
-/* 홈/통계 모드일 때 다른 화면 전부 숨김 */
+/* 홈/통계/관리자 모드일 때 다른 화면 전부 숨김 */
 body.home-mode .toolbar,  body.home-mode .cal-screen,  body.home-mode .planner-wrap,  body.home-mode .day-nav,  body.home-mode .login-screen,
-body.stats-mode .toolbar, body.stats-mode .cal-screen, body.stats-mode .planner-wrap, body.stats-mode .day-nav, body.stats-mode .login-screen { display: none !important; }
+body.stats-mode .toolbar, body.stats-mode .cal-screen, body.stats-mode .planner-wrap, body.stats-mode .day-nav, body.stats-mode .login-screen,
+body.admin-mode .toolbar, body.admin-mode .cal-screen, body.admin-mode .planner-wrap, body.admin-mode .day-nav, body.admin-mode .login-screen { display: none !important; }
 
 .home-greeting { font-size: 15px; color: var(--ink-light); margin-bottom: 4px; font-weight: 600; }
 .home-logo { font-family: 'Gothic A1','Noto Sans KR',sans-serif; font-weight: 900; font-size: 34px; color: #111; margin-bottom: 32px; }
@@ -1126,6 +1147,16 @@ body.stats-mode .toolbar, body.stats-mode .cal-screen, body.stats-mode .planner-
 .stats-subj-bar-fill { height: 100%; border-radius: 4px; }
 .stats-subj-time { font-size: 12px; color: #888; min-width: 56px; text-align: right; }
 .stats-empty { color: #bbb; font-size: 13px; padding: 30px 0; text-align: center; }
+
+/* 관리자 */
+.admin-user { width: 100%; background: #fff; border: 1.5px solid #EDEDED; border-radius: 14px; padding: 14px 16px; margin-bottom: 10px; cursor: pointer; }
+.admin-user:active { background: #FAFAFA; }
+.admin-user-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.admin-user-name { font-size: 14px; font-weight: 800; color: #1a1a1a; }
+.admin-user-email { font-size: 11px; color: #999; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.admin-user-days { margin-top: 6px; }
+.admin-day { font-size: 12px; color: #555; padding: 4px 0; border-top: 1px solid #F2F2F2; }
+.admin-empty { font-size: 12px; color: #bbb; padding: 6px 0; }
 
 .login-logo {
   font-size: 36px;
@@ -1551,7 +1582,15 @@ body.cal-mode .day-nav { display: none; }
     <p class="login-desc">구글 계정으로 로그인하면<br>내 플래너가 저장돼요</p>
     <!-- 로그인 단계 -->
     <div id="loginStep">
-      <div id="googleBtnContainer" style="display:flex;justify-content:center;min-height:44px;"></div>
+      <button class="google-btn" onclick="triggerGoogleLogin()">
+        <svg width="18" height="18" viewBox="0 0 18 18">
+          <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"/>
+          <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"/>
+          <path fill="#FBBC05" d="M3.964 10.707c-.18-.54-.282-1.117-.282-1.707s.102-1.167.282-1.707V4.961H.957C.347 6.175 0 7.55 0 9s.348 2.825.957 4.039l3.007-2.332z"/>
+          <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.961L3.964 7.293C4.672 5.166 6.656 3.58 9 3.58z"/>
+        </svg>
+        Google로 로그인
+      </button>
     </div>
 
     <!-- 닉네임 설정 단계 (최초 로그인 시) -->
@@ -1585,8 +1624,26 @@ body.cal-mode .day-nav { display: none; }
       </div>
       <div class="home-card-arrow">›</div>
     </div>
+    <div class="home-card" id="adminCard" style="display:none;" onclick="showAdmin()">
+      <div class="home-card-icon">🛠️</div>
+      <div class="home-card-body">
+        <div class="home-card-title">관리자</div>
+        <div class="home-card-desc">전체 사용자 데이터 확인·관리</div>
+      </div>
+      <div class="home-card-arrow">›</div>
+    </div>
   </div>
   <button class="home-logout" onclick="handleLogout()">로그아웃</button>
+</div>
+
+<!-- 관리자 화면 -->
+<div class="admin-screen" id="adminScreen">
+  <div class="stats-header">
+    <button class="stats-back" onclick="showHome()">← 홈</button>
+    <div class="stats-title">관리자</div>
+    <button class="stats-back" onclick="loadAdminUsers()">↻</button>
+  </div>
+  <div id="adminContent" style="width:100%;"></div>
 </div>
 
 <!-- 통계 화면 -->
@@ -2013,6 +2070,7 @@ function showTimePicker(e, task, timeBtn) {
     timeBtn.textContent = task.time;
     renderTimetable();
     updateSubjSummary();
+    saveDayState();
     closeAllPopups();
   });
   popup.appendChild(ok);
@@ -2051,6 +2109,8 @@ function renderTasks() {
     subjDiv.addEventListener('input', () => {
       tasks[i].subject = subjDiv.textContent.trim();
       renderTimetable();
+      updateSubjSummary();
+      scheduleSave();
     });
 
     wrap.appendChild(dot);
@@ -2082,6 +2142,7 @@ function renderTasks() {
       tasks[i].text = ta.value;
       ta.style.height = 'auto';
       ta.style.height = ta.scrollHeight + 'px';
+      scheduleSave();
     });
 
     // checkmark
@@ -2095,6 +2156,7 @@ function renderTasks() {
       chk.innerHTML = makeCheckSVG(tasks[i].done);
       li.classList.toggle('done', tasks[i].done);
       updateTotalTime();
+      saveDayState();
     });
 
     // delete — 5번째 열
@@ -2106,6 +2168,7 @@ function renderTasks() {
       tasks.splice(i, 1);
       renderTasks();
       updateTotalTime();
+      saveDayState();
     });
 
     li.addEventListener('click', () => ta.focus());
@@ -2128,6 +2191,7 @@ function addTask() {
   if (!text) return;
   tasks.push({ subject: subj, time: '', text, done: false, colorKey: newColorKey() });
   renderTasks();
+  saveDayState();
   document.getElementById('addSubject').value = '';
   document.getElementById('addTask').value = '';
   document.getElementById('addTask').focus();
@@ -2385,8 +2449,78 @@ function makeFaceSVG({ eyeStyle='normal', mouthStyle='straight', browStyle='flat
   return `<svg viewBox="0 0 80 82" xmlns="http://www.w3.org/2000/svg">${BASE}${BROWS[browStyle]||BROWS.flat}${EYES[eyeStyle]||EYES.normal}${MOUTHS[mouthStyle]||MOUTHS.straight}${extras}</svg>`;
 }
 
+// ─── 라인아트 소년 캐릭터 ───────────────────────────────────────────────────
+function makeBoySVG(expr) {
+  const INK = '#1a1a1a';
+  const W = 2.4;
+
+  // 귀
+  const ears = `
+    <ellipse cx="18" cy="58" rx="6" ry="8" fill="#fff" stroke="${INK}" stroke-width="${W}"/>
+    <ellipse cx="82" cy="58" rx="6" ry="8" fill="#fff" stroke="${INK}" stroke-width="${W}"/>`;
+
+  // 얼굴
+  const face = `<path d="M24 52 C24 31 35 23 50 23 C65 23 76 31 76 52 C76 73 65 85 50 85 C35 85 24 73 24 52Z"
+    fill="#fff" stroke="${INK}" stroke-width="${W}"/>`;
+
+  // 머리카락 (실루엣 + 삐침 + 옆 뻗침)
+  const hair = `
+    <path d="M19 55 C9 31 25 14 50 14 C75 14 91 31 81 55 C76 47 70 44 64 46 C60 43 55 43 50 45 C45 43 40 43 36 46 C30 44 24 47 19 55Z"
+      fill="#fff" stroke="${INK}" stroke-width="${W}" stroke-linejoin="round"/>
+    <path d="M47 15 C44 7 51 5 52 12" fill="#fff" stroke="${INK}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M20 46 C11 43 10 49 17 51" fill="#fff" stroke="${INK}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M80 46 C89 43 90 49 83 51" fill="#fff" stroke="${INK}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M43 46 C41 40 38 41 39 46" fill="none" stroke="${INK}" stroke-width="1.6" stroke-linecap="round"/>
+    <path d="M37 47 C34 42 31 43 33 47" fill="none" stroke="${INK}" stroke-width="1.6" stroke-linecap="round"/>
+    <path d="M57 46 C59 40 62 41 61 46" fill="none" stroke="${INK}" stroke-width="1.6" stroke-linecap="round"/>
+    <path d="M63 47 C66 42 69 43 67 47" fill="none" stroke="${INK}" stroke-width="1.6" stroke-linecap="round"/>`;
+
+  // 눈 (처진 눈)
+  const eyes = `
+    <path d="M31 51 Q37 47.5 43 51" fill="none" stroke="${INK}" stroke-width="2.8" stroke-linecap="round"/>
+    <ellipse cx="37.5" cy="53.5" rx="2.3" ry="2.7" fill="${INK}"/>
+    <path d="M57 51 Q63 47.5 69 51" fill="none" stroke="${INK}" stroke-width="2.8" stroke-linecap="round"/>
+    <ellipse cx="62.5" cy="53.5" rx="2.3" ry="2.7" fill="${INK}"/>`;
+
+  const mouths = {
+    basic:    `<path d="M44 70 Q50 72 56 70" fill="none" stroke="${INK}" stroke-width="2.4" stroke-linecap="round"/>`,
+    urgent:   `<path d="M45 71 L55 71" fill="none" stroke="${INK}" stroke-width="2.4" stroke-linecap="round"/>`,
+    good:     `<path d="M43 69 Q50 76 57 69" fill="none" stroke="${INK}" stroke-width="2.4" stroke-linecap="round"/>`,
+    question: `<path d="M44 70 Q50 72 56 70" fill="none" stroke="${INK}" stroke-width="2.4" stroke-linecap="round"/>`,
+    sad:      `<path d="M44 74 Q50 68 56 74" fill="none" stroke="${INK}" stroke-width="2.4" stroke-linecap="round"/>`,
+  };
+
+  const extras = {
+    basic: '',
+    urgent: '',
+    good: `
+      <path d="M83 39 l1.3 3.6 3.6 1.3 -3.6 1.3 -1.3 3.6 -1.3 -3.6 -3.6 -1.3 3.6 -1.3Z" fill="${INK}"/>
+      <g fill="#fff" stroke="${INK}" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round">
+        <path d="M79 82 L79 72 L89 72 L89 82 Q89 84 87 84 L81 84 Q79 84 79 82Z"/>
+        <path d="M81 72 L81 64 Q81 61 84 61 Q87 61 87 64 L87 72"/>
+        <path d="M79 76 L89 76"/>
+      </g>`,
+    question: `
+      <text x="55" y="20" font-size="26" font-weight="bold" fill="${INK}" font-family="sans-serif">?</text>
+      <text x="40" y="13" font-size="14" fill="${INK}" font-family="sans-serif">?</text>
+      <text x="76" y="17" font-size="12" fill="${INK}" font-family="sans-serif">?</text>
+      <circle cx="59" cy="31" r="4.5" fill="#fff" stroke="${INK}" stroke-width="2"/>`,
+    sad: `
+      <path d="M35.5 56 C33 62 32 70 34.5 76 C37 70 38 62 39 56Z" fill="#fff" stroke="${INK}" stroke-width="1.8" stroke-linejoin="round"/>
+      <path d="M64.5 56 C62 61 61 67 63 72 C65 67 66 61 66.5 56Z" fill="#fff" stroke="${INK}" stroke-width="1.8" stroke-linejoin="round"/>
+      <circle cx="34" cy="79" r="2" fill="#fff" stroke="${INK}" stroke-width="1.5"/>`,
+  };
+
+  return `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">${ears}${face}${hair}${eyes}${mouths[expr]||mouths.basic}${extras[expr]||''}</svg>`;
+}
+
 const CHAR_STICKERS = [
-  { label: '기본', svg: makeFaceSVG({ eyeStyle:'normal', mouthStyle:'slight', browStyle:'flat' }) },
+  { label: '기본',   svg: makeBoySVG('basic') },
+  { label: '비상',   svg: makeBoySVG('urgent') },
+  { label: '굳',     svg: makeBoySVG('good') },
+  { label: '물음표', svg: makeBoySVG('question') },
+  { label: '슬픔',   svg: makeBoySVG('sad') },
+  { label: '강아지', svg: makeFaceSVG({ eyeStyle:'normal', mouthStyle:'slight', browStyle:'flat' }) },
   { label: '졸려', svg: makeFaceSVG({ eyeStyle:'sleepy', mouthStyle:'straight', browStyle:'droopy',
       extras: `<text x="59" y="20" font-size="11" fill="#AAA" font-family="sans-serif">z</text>
                <text x="65" y="12" font-size="8"  fill="#CCC" font-family="sans-serif">z</text>` }) },
@@ -2605,6 +2739,45 @@ function toggleStickerPanel() {
 
 // drop onto planner
 const plannerPage = document.getElementById('plannerPage');
+
+// ─── 스티커 날짜별 저장/복원 + 자동 저장 ────────────────────────────────────
+function isPlannerOpen() {
+  const c = document.body.classList;
+  return !c.contains('login-mode') && !c.contains('home-mode') && !c.contains('stats-mode') && !c.contains('cal-mode');
+}
+
+let _saveTimer = null;
+function scheduleSave() {
+  clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(() => {
+    if (currentUser && isPlannerOpen()) saveDayState();
+  }, 500);
+}
+
+function serializeStickers() {
+  return [...plannerPage.querySelectorAll('.placed-sticker')].map(el => ({
+    kind: el._kind, emoji: el._emoji, src: el._src,
+    left: el.style.left, top: el.style.top,
+    width: el.style.width, fontSize: el.style.fontSize,
+    rot: el.dataset.rot || 0, zIndex: el.style.zIndex,
+  }));
+}
+
+function clearStickers() {
+  plannerPage.querySelectorAll('.placed-sticker').forEach(el => {
+    if (el._picker) el._picker.remove();
+    el.remove();
+  });
+}
+
+function restoreStickers(arr) {
+  clearStickers();
+  (arr || []).forEach(s => {
+    if (s.kind === 'photo') placePhoto(s.src, s);
+    else placeSticker(s.emoji, parseInt(s.left) || 80, parseInt(s.top) || 80, s);
+  });
+}
+
 plannerPage.addEventListener('dragover', e => e.preventDefault());
 plannerPage.addEventListener('drop', e => {
   e.preventDefault();
@@ -2624,12 +2797,15 @@ function handlePhotoUpload(e) {
   e.target.value = ''; // 같은 파일 재업로드 허용
 }
 
-function placePhoto(src) {
+function placePhoto(src, opts = {}) {
   const el = document.createElement('div');
   el.className = 'placed-sticker placed-photo';
-  el.style.left = '80px';
-  el.style.top  = '120px';
-  el.style.width = '120px';
+  el._kind = 'photo';
+  el._src = src;
+  el.style.left  = opts.left  || '80px';
+  el.style.top   = opts.top   || '120px';
+  el.style.width = opts.width || '120px';
+  if (opts.zIndex) el.style.zIndex = opts.zIndex;
 
   const img = document.createElement('img');
   img.src = src;
@@ -2670,6 +2846,7 @@ function placePhoto(src) {
     picker.appendChild(btn);
   });
   document.body.appendChild(picker);
+  el._picker = picker;
 
   function openPicker() {
     const vw = window.innerWidth;
@@ -2684,7 +2861,9 @@ function placePhoto(src) {
     el.classList.remove('picker-open');
   }
 
-  let rotation = 0;
+  let rotation = parseInt(opts.rot) || 0;
+  if (rotation) el.style.transform = `rotate(${rotation}deg)`;
+  el.dataset.rot = rotation;
 
   const ctrl = document.createElement('div');
   ctrl.className = 'sticker-controls';
@@ -2699,9 +2878,9 @@ function placePhoto(src) {
     return b;
   }
 
-  ctrl.appendChild(mkBtn('+', null, () => { el.style.width = (el.offsetWidth + 20) + 'px'; }));
-  ctrl.appendChild(mkBtn('–', null, () => { el.style.width = Math.max(40, el.offsetWidth - 20) + 'px'; }));
-  ctrl.appendChild(mkBtn('↻', null, () => { rotation = (rotation + 15) % 360; el.style.transform = `rotate(${rotation}deg)`; }));
+  ctrl.appendChild(mkBtn('+', null, () => { el.style.width = (el.offsetWidth + 20) + 'px'; scheduleSave(); }));
+  ctrl.appendChild(mkBtn('–', null, () => { el.style.width = Math.max(40, el.offsetWidth - 20) + 'px'; scheduleSave(); }));
+  ctrl.appendChild(mkBtn('↻', null, () => { rotation = (rotation + 15) % 360; el.style.transform = `rotate(${rotation}deg)`; el.dataset.rot = rotation; scheduleSave(); }));
 
   const frameBtn = document.createElement('button');
   frameBtn.className = 'sticker-ctrl-btn';
@@ -2710,11 +2889,11 @@ function placePhoto(src) {
   frameBtn.onclick = ev => { ev.stopPropagation(); picker.style.display === 'flex' ? closePicker() : openPicker(); };
   ctrl.appendChild(frameBtn);
 
-  ctrl.appendChild(mkBtn('↑', null, () => { el.style.zIndex = (parseInt(el.style.zIndex)||10) + 1; }));
-  ctrl.appendChild(mkBtn('↓', null, () => { el.style.zIndex = Math.max(1, (parseInt(el.style.zIndex)||10) - 1); }));
-  ctrl.appendChild(mkBtn('⧉', null, () => { placePhoto(src); }));
+  ctrl.appendChild(mkBtn('↑', null, () => { el.style.zIndex = (parseInt(el.style.zIndex)||10) + 1; scheduleSave(); }));
+  ctrl.appendChild(mkBtn('↓', null, () => { el.style.zIndex = Math.max(1, (parseInt(el.style.zIndex)||10) - 1); scheduleSave(); }));
+  ctrl.appendChild(mkBtn('⧉', null, () => { placePhoto(src); scheduleSave(); }));
 
-  const del = mkBtn('✕', '#FF6B6B', () => { picker.remove(); el.remove(); });
+  const del = mkBtn('✕', '#FF6B6B', () => { picker.remove(); el.remove(); scheduleSave(); });
   ctrl.appendChild(del);
 
   el.appendChild(ctrl);
@@ -2740,16 +2919,24 @@ function placePhoto(src) {
 
   makeDraggable(el);
   plannerPage.appendChild(el);
+  scheduleSave();
+  return el;
 }
 
-function placeSticker(emoji, x, y) {
+function placeSticker(emoji, x, y, opts = {}) {
   const el = document.createElement('div');
   el.className = 'placed-sticker';
+  el._kind = 'emoji';
+  el._emoji = emoji;
   el.textContent = emoji;
-  el.style.left = x + 'px';
-  el.style.top  = y + 'px';
+  el.style.left = (opts.left ? parseInt(opts.left) : x) + 'px';
+  el.style.top  = (opts.top  ? parseInt(opts.top)  : y) + 'px';
+  if (opts.fontSize) el.style.fontSize = opts.fontSize;
+  if (opts.zIndex) el.style.zIndex = opts.zIndex;
 
-  let rot = 0;
+  let rot = parseInt(opts.rot) || 0;
+  if (rot) el.style.transform = `rotate(${rot}deg)`;
+  el.dataset.rot = rot;
   const ctrl = document.createElement('div');
   ctrl.className = 'sticker-controls';
 
@@ -2763,17 +2950,19 @@ function placeSticker(emoji, x, y) {
     return b;
   }
 
-  ctrl.appendChild(mkSBtn('+', null, () => { el.style.fontSize = (parseInt(el.style.fontSize||32) + 6) + 'px'; }));
-  ctrl.appendChild(mkSBtn('–', null, () => { el.style.fontSize = Math.max(12, (parseInt(el.style.fontSize||32) - 6)) + 'px'; }));
-  ctrl.appendChild(mkSBtn('↻', null, () => { rot = (rot + 15) % 360; el.style.transform = `rotate(${rot}deg)`; }));
-  ctrl.appendChild(mkSBtn('↑', null, () => { el.style.zIndex = (parseInt(el.style.zIndex)||10) + 1; }));
-  ctrl.appendChild(mkSBtn('↓', null, () => { el.style.zIndex = Math.max(1, (parseInt(el.style.zIndex)||10) - 1); }));
-  ctrl.appendChild(mkSBtn('⧉', null, () => { placeSticker(emoji, parseInt(el.style.left)+20, parseInt(el.style.top)+20); }));
-  ctrl.appendChild(mkSBtn('✕', '#FF6B6B', () => el.remove()));
+  ctrl.appendChild(mkSBtn('+', null, () => { el.style.fontSize = (parseInt(el.style.fontSize||32) + 6) + 'px'; scheduleSave(); }));
+  ctrl.appendChild(mkSBtn('–', null, () => { el.style.fontSize = Math.max(12, (parseInt(el.style.fontSize||32) - 6)) + 'px'; scheduleSave(); }));
+  ctrl.appendChild(mkSBtn('↻', null, () => { rot = (rot + 15) % 360; el.style.transform = `rotate(${rot}deg)`; el.dataset.rot = rot; scheduleSave(); }));
+  ctrl.appendChild(mkSBtn('↑', null, () => { el.style.zIndex = (parseInt(el.style.zIndex)||10) + 1; scheduleSave(); }));
+  ctrl.appendChild(mkSBtn('↓', null, () => { el.style.zIndex = Math.max(1, (parseInt(el.style.zIndex)||10) - 1); scheduleSave(); }));
+  ctrl.appendChild(mkSBtn('⧉', null, () => { placeSticker(emoji, parseInt(el.style.left)+20, parseInt(el.style.top)+20); scheduleSave(); }));
+  ctrl.appendChild(mkSBtn('✕', '#FF6B6B', () => { el.remove(); scheduleSave(); }));
   el.appendChild(ctrl);
 
   makeDraggable(el);
   plannerPage.appendChild(el);
+  scheduleSave();
+  return el;
 }
 
 function makeDraggable(el) {
@@ -2797,6 +2986,7 @@ function makeDraggable(el) {
     const up = () => {
       document.removeEventListener('mousemove', move);
       document.removeEventListener('mouseup', up);
+      scheduleSave();
     };
     document.addEventListener('mousemove', move);
     document.addEventListener('mouseup', up);
@@ -2838,74 +3028,104 @@ function makeDraggable(el) {
 
   el.addEventListener('touchend', () => {
     if (pinching) pinching = false;
+    scheduleSave();
   });
 }
 
-// ─── 구글 로그인 ────────────────────────────────────────────────────────────
-const GOOGLE_CLIENT_ID = '701451926205-2vhdj74cbsds1f8etonh691vgrsvf4e7.apps.googleusercontent.com';
+// ─── Firebase 로그인 ────────────────────────────────────────────────────────
+let currentUser = null;     // { sub(uid), name(nickname), picture, email }
+let pendingFbUser = null;   // 닉네임 설정 대기 중인 Firebase user
 
-let currentUser = null;
-
-function parseJwt(token) {
-  const base64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
-  return JSON.parse(decodeURIComponent(atob(base64).split('').map(c =>
-    '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join('')));
-}
-
-function handleCredentialResponse(response) {
-  const user = parseJwt(response.credential);
-  handleGoogleUser({ sub: user.sub, picture: user.picture, email: user.email });
-}
-
-// 구글 인증 성공 후: 닉네임(플래니 계정) 확인
-let pendingGoogleUser = null;
-function handleGoogleUser(googleUser) {
-  const nickname = localStorage.getItem('plannie_nickname_' + googleUser.sub);
-  if (nickname) {
-    // 이미 플래니 계정 있음 → 바로 로그인
-    loginAs({ sub: googleUser.sub, name: nickname, picture: googleUser.picture, email: googleUser.email });
+// 구글 로그인 버튼
+function triggerGoogleLogin() {
+  const provider = new firebase.auth.GoogleAuthProvider();
+  provider.setCustomParameters({ prompt: 'select_account' });
+  const isMobile = /iphone|ipad|ipod|android/i.test(navigator.userAgent);
+  if (isMobile) {
+    fbAuth.signInWithRedirect(provider);
   } else {
-    // 최초 로그인 → 닉네임 설정 단계 표시
-    pendingGoogleUser = googleUser;
-    document.getElementById('loginStep').style.display = 'none';
-    document.getElementById('nicknameStep').style.display = 'block';
-    setTimeout(() => document.getElementById('nicknameInput').focus(), 100);
+    fbAuth.signInWithPopup(provider).catch(err => {
+      if (err && (err.code === 'auth/popup-blocked' || err.code === 'auth/cancelled-popup-request')) {
+        fbAuth.signInWithRedirect(provider);
+      } else if (err) {
+        alert('로그인 오류: ' + err.message);
+      }
+    });
   }
 }
 
-function confirmNickname() {
+// 인증 상태 감지 (자동 로그인 포함)
+function initGoogleLogin() {
+  fbAuth.onAuthStateChanged(async (user) => {
+    if (user) {
+      await onFirebaseLogin(user);
+    } else {
+      currentUser = null;
+      document.getElementById('userArea').style.display = 'none';
+      setMode('login-mode');
+      document.getElementById('loginStep').style.display = 'block';
+      document.getElementById('nicknameStep').style.display = 'none';
+    }
+  });
+}
+
+async function onFirebaseLogin(user) {
+  // Firestore에서 닉네임(플래니 계정) 확인
+  let nickname = null;
+  try {
+    const snap = await fbDb.collection('users').doc(user.uid).get();
+    if (snap.exists) nickname = snap.data().nickname || null;
+  } catch (e) { console.error(e); }
+
+  if (!nickname) {
+    // 최초 로그인 → 닉네임 설정 단계
+    pendingFbUser = user;
+    setMode('login-mode');
+    document.getElementById('loginStep').style.display = 'none';
+    document.getElementById('nicknameStep').style.display = 'block';
+    setTimeout(() => document.getElementById('nicknameInput').focus(), 100);
+    return;
+  }
+  await enterApp(user, nickname);
+}
+
+async function enterApp(user, nickname) {
+  currentUser = { sub: user.uid, name: nickname, picture: user.photoURL || '', email: user.email || '' };
+  await loadUserDayStore();
+
+  document.getElementById('userAvatar').src = currentUser.picture;
+  document.getElementById('userName').textContent = nickname;
+  document.getElementById('userArea').style.display = 'flex';
+
+  // 관리자면 홈에 관리자 버튼 표시
+  document.getElementById('adminCard').style.display =
+    (currentUser.email === ADMIN_EMAIL) ? 'flex' : 'none';
+
+  showHome();
+}
+
+async function confirmNickname() {
   const input = document.getElementById('nicknameInput');
   const nickname = input.value.trim();
   if (!nickname) { input.focus(); return; }
-  if (!pendingGoogleUser) return;
-  localStorage.setItem('plannie_nickname_' + pendingGoogleUser.sub, nickname);
-  loginAs({ sub: pendingGoogleUser.sub, name: nickname, picture: pendingGoogleUser.picture, email: pendingGoogleUser.email });
-  // 단계 초기화
+  if (!pendingFbUser) return;
+  const user = pendingFbUser;
+  try {
+    await fbDb.collection('users').doc(user.uid).set({
+      nickname, name: nickname, email: user.email || '', photoURL: user.photoURL || '',
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+    }, { merge: true });
+  } catch (e) { alert('저장 오류: ' + e.message); return; }
+  pendingFbUser = null;
+  input.value = '';
   document.getElementById('nicknameStep').style.display = 'none';
   document.getElementById('loginStep').style.display = 'block';
-  input.value = '';
-  pendingGoogleUser = null;
-}
-
-function loginAs(user) {
-  currentUser = user;
-  localStorage.setItem('plannie_user', JSON.stringify({
-    sub: user.sub, name: user.name, picture: user.picture, email: user.email
-  }));
-  loadUserDayStore();
-
-  // UI 업데이트
-  document.getElementById('userAvatar').src = user.picture || '';
-  document.getElementById('userName').textContent = user.name?.split(' ')[0] || '';
-  document.getElementById('userArea').style.display = 'flex';
-
-  // 로그인 화면 → 홈 허브
-  showHome();
+  await enterApp(user, nickname);
 }
 
 // ─── 화면 모드 전환 ─────────────────────────────────────────────────────────
 function setMode(mode) {
-  document.body.classList.remove('login-mode', 'home-mode', 'stats-mode', 'cal-mode');
+  document.body.classList.remove('login-mode', 'home-mode', 'stats-mode', 'cal-mode', 'admin-mode');
   if (mode) document.body.classList.add(mode);
 }
 
@@ -3015,40 +3235,105 @@ function renderStats() {
   }).join('');
 }
 
-function handleLogout() {
-  saveUserDayStore();
-  currentUser = null;
-  localStorage.removeItem('plannie_user');
+// ─── 관리자 ─────────────────────────────────────────────────────────────────
+function showAdmin() {
+  if (!currentUser || currentUser.email !== ADMIN_EMAIL) { alert('관리자 권한이 없습니다.'); return; }
+  setMode('admin-mode');
+  loadAdminUsers();
+}
 
+async function loadAdminUsers() {
+  const box = document.getElementById('adminContent');
+  box.innerHTML = '<div class="stats-empty">불러오는 중…</div>';
+  try {
+    const snap = await fbDb.collection('users').get();
+    const users = [];
+    snap.forEach(doc => users.push({ id: doc.id, ...doc.data() }));
+    if (users.length === 0) { box.innerHTML = '<div class="stats-empty">사용자가 없습니다.</div>'; return; }
+
+    box.innerHTML =
+      `<div class="stats-subj-title">전체 사용자 (${users.length}명)</div>` +
+      users.map(u => `
+        <div class="admin-user" onclick="loadAdminUserDays('${u.id}', this)">
+          <div class="admin-user-top">
+            <span class="admin-user-name">${u.nickname || '(닉네임 없음)'}</span>
+            <span class="admin-user-email">${u.email || ''}</span>
+          </div>
+          <div class="admin-user-days" id="days_${u.id}"></div>
+        </div>`).join('');
+  } catch (e) {
+    box.innerHTML = `<div class="stats-empty">불러오기 실패: ${e.message}</div>`;
+  }
+}
+
+async function loadAdminUserDays(uid, el) {
+  const target = document.getElementById('days_' + uid);
+  if (target.dataset.loaded === '1') { target.innerHTML = ''; target.dataset.loaded = '0'; return; }
+  target.innerHTML = '불러오는 중…';
+  try {
+    const snap = await fbDb.collection('users').doc(uid).collection('days').get();
+    if (snap.empty) { target.innerHTML = '<div class="admin-empty">기록 없음</div>'; target.dataset.loaded = '1'; return; }
+    const rows = [];
+    snap.forEach(doc => {
+      const d = doc.data();
+      const total = (d.tasks || []).length;
+      const done = (d.tasks || []).filter(t => t.done).length;
+      rows.push(`<div class="admin-day"><b>${doc.id}</b> · 계획 ${total}개 · 완료 ${done}개</div>`);
+    });
+    rows.sort();
+    target.innerHTML = rows.join('');
+    target.dataset.loaded = '1';
+  } catch (e) {
+    target.innerHTML = '오류: ' + e.message;
+  }
+}
+
+function handleLogout() {
   // 초기화
   tasks.length = 0;
   Object.keys(dayStore).forEach(k => delete dayStore[k]);
   Object.keys(colorMap).forEach(k => delete colorMap[k]);
+  clearStickers();
 
   document.getElementById('userArea').style.display = 'none';
-  setMode('login-mode');
-
-  // 로그인 화면 초기 상태로
-  document.getElementById('loginStep').style.display = 'block';
-  document.getElementById('nicknameStep').style.display = 'none';
+  fbAuth.signOut(); // onAuthStateChanged가 로그인 화면 처리
 }
 
-
-function loadUserDayStore() {
+// Firestore에서 사용자 데이터 로드
+async function loadUserDayStore() {
   if (!currentUser) return;
-  const saved = localStorage.getItem('plannie_days_' + currentUser.sub);
   Object.keys(dayStore).forEach(k => delete dayStore[k]);
-  if (saved) Object.assign(dayStore, JSON.parse(saved));
-  const savedDday = localStorage.getItem('plannie_dday_' + currentUser.sub);
   ddayList.length = 0;
-  if (savedDday) JSON.parse(savedDday).forEach(d => ddayList.push(d));
+  try {
+    const userRef = fbDb.collection('users').doc(currentUser.sub);
+    const userSnap = await userRef.get();
+    if (userSnap.exists && Array.isArray(userSnap.data().dday)) {
+      userSnap.data().dday.forEach(d => ddayList.push(d));
+    }
+    const daysSnap = await userRef.collection('days').get();
+    daysSnap.forEach(doc => { dayStore[doc.id] = doc.data(); });
+  } catch (e) { console.error('데이터 로드 실패', e); }
   renderDdayPanel();
 }
 
+// D-Day 등 사용자 메타 저장
 function saveUserDayStore() {
   if (!currentUser) return;
-  localStorage.setItem('plannie_days_' + currentUser.sub, JSON.stringify(dayStore));
-  localStorage.setItem('plannie_dday_' + currentUser.sub, JSON.stringify(ddayList));
+  fbDb.collection('users').doc(currentUser.sub).set(
+    { dday: JSON.parse(JSON.stringify(ddayList)) }, { merge: true }
+  ).catch(e => console.error('D-Day 저장 실패', e));
+}
+
+// 특정 날짜 문서를 Firestore에 저장 (디바운스)
+const _dayDocTimers = {};
+function saveDayDoc(key) {
+  if (!currentUser || !dayStore[key]) return;
+  clearTimeout(_dayDocTimers[key]);
+  _dayDocTimers[key] = setTimeout(() => {
+    const data = JSON.parse(JSON.stringify(dayStore[key])); // undefined 제거
+    fbDb.collection('users').doc(currentUser.sub).collection('days').doc(key).set(data)
+      .catch(e => console.error('날짜 저장 실패', e));
+  }, 700);
 }
 
 // ─── D-DAY 관리 ───────────────────────────────────────────────────────────
@@ -3120,95 +3405,6 @@ function getMainDday() {
   }
   valid.sort((a, b) => parseDateLocal(b.date) - parseDateLocal(a.date));
   return valid[0];
-}
-
-// 페이지 이동(redirect) 방식 — GSI 버튼이 안 뜨는 환경용 fallback
-function getRedirectUri() {
-  return window.location.origin + window.location.pathname;
-}
-function triggerGoogleLoginRedirect() {
-  const params = new URLSearchParams({
-    client_id: GOOGLE_CLIENT_ID,
-    redirect_uri: getRedirectUri(),
-    response_type: 'token',
-    scope: 'openid profile email',
-    prompt: 'select_account',
-  });
-  window.location.href = 'https://accounts.google.com/o/oauth2/v2/auth?' + params.toString();
-}
-
-function showFallbackButton() {
-  const c = document.getElementById('googleBtnContainer');
-  if (!c || c.dataset.fallback === '1') return;
-  c.dataset.fallback = '1';
-  c.innerHTML =
-    `<button class="google-btn" onclick="triggerGoogleLoginRedirect()">
-      <svg width="18" height="18" viewBox="0 0 18 18">
-        <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"/>
-        <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"/>
-        <path fill="#FBBC05" d="M3.964 10.707c-.18-.54-.282-1.117-.282-1.707s.102-1.167.282-1.707V4.961H.957C.347 6.175 0 7.55 0 9s.348 2.825.957 4.039l3.007-2.332z"/>
-        <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.961L3.964 7.293C4.672 5.166 6.656 3.58 9 3.58z"/>
-      </svg>
-      Google로 로그인
-    </button>`;
-}
-
-function initGoogleLogin() {
-  const TEST_MODE = false;
-  if (TEST_MODE) {
-    loginAs({ sub: 'test_user_001', name: '테스트', picture: '' });
-    return;
-  }
-
-  // redirect 방식으로 돌아온 경우: URL 해시에서 access_token 처리
-  const hash = new URLSearchParams(window.location.hash.slice(1));
-  const accessToken = hash.get('access_token');
-  if (accessToken) {
-    history.replaceState(null, '', window.location.pathname);
-    fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-      headers: { Authorization: 'Bearer ' + accessToken }
-    })
-    .then(r => r.json())
-    .then(user => handleGoogleUser({ sub: user.sub, picture: user.picture, email: user.email }))
-    .catch(() => { alert('로그인 처리 중 오류가 발생했어요. 다시 시도해주세요.'); showFallbackButton(); });
-    return;
-  }
-
-  // 저장된 유저 확인 (자동 로그인)
-  const saved = localStorage.getItem('plannie_user');
-  if (saved) {
-    loginAs(JSON.parse(saved));
-    return;
-  }
-
-  // 구글 공식 로그인 버튼(GSI) 렌더링 시도
-  let tries = 0;
-  function render() {
-    if (typeof google === 'undefined' || !google.accounts || !google.accounts.id) {
-      if (++tries > 15) { showFallbackButton(); return; } // 3초 내 GSI 안 뜨면 fallback
-      setTimeout(render, 200);
-      return;
-    }
-    try {
-      google.accounts.id.initialize({
-        client_id: GOOGLE_CLIENT_ID,
-        callback: handleCredentialResponse,
-      });
-      google.accounts.id.renderButton(
-        document.getElementById('googleBtnContainer'),
-        { theme: 'outline', size: 'large', width: 280, locale: 'ko', text: 'signin_with', shape: 'pill' }
-      );
-    } catch(e) {
-      showFallbackButton();
-      return;
-    }
-    // 1.5초 후에도 버튼이 실제로 안 그려졌으면 fallback
-    setTimeout(() => {
-      const c = document.getElementById('googleBtnContainer');
-      if (c && c.childElementCount === 0) showFallbackButton();
-    }, 1500);
-  }
-  render();
 }
 
 // ─── CALENDAR ─────────────────────────────────────────────────────────────
@@ -3326,12 +3522,14 @@ function dateKey(d) {
 
 function saveDayState() {
   const memoInputs = document.querySelectorAll('#memoLines .memo-field');
-  dayStore[dateKey(currentDate)] = {
+  const key = dateKey(currentDate);
+  dayStore[key] = {
     tasks:    JSON.parse(JSON.stringify(tasks)),
     colorMap: {...colorMap},
     memos:    Array.from(memoInputs).map(i => i.value),
+    stickers: serializeStickers(),
   };
-  saveUserDayStore();
+  saveDayDoc(key);
 }
 
 function applyDateToHeader(d) {
@@ -3362,8 +3560,10 @@ function loadDayState(d) {
     Object.assign(colorMap, saved.colorMap);
     const memoInputs = document.querySelectorAll('#memoLines .memo-field');
     memoInputs.forEach((inp, i) => { inp.value = (saved.memos && saved.memos[i]) || ''; });
+    restoreStickers(saved.stickers);
   } else {
     document.querySelectorAll('#memoLines .memo-field').forEach(inp => { inp.value = ''; });
+    clearStickers();
   }
 
   // D-Day 자동 계산
