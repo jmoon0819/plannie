@@ -3036,26 +3036,29 @@ function makeDraggable(el) {
 let currentUser = null;     // { sub(uid), name(nickname), picture, email }
 let pendingFbUser = null;   // 닉네임 설정 대기 중인 Firebase user
 
-// 구글 로그인 버튼
+// 구글 로그인 버튼 (팝업 우선 — 모바일 Safari 포함 가장 안정적)
 function triggerGoogleLogin() {
   const provider = new firebase.auth.GoogleAuthProvider();
   provider.setCustomParameters({ prompt: 'select_account' });
-  const isMobile = /iphone|ipad|ipod|android/i.test(navigator.userAgent);
-  if (isMobile) {
-    fbAuth.signInWithRedirect(provider);
-  } else {
-    fbAuth.signInWithPopup(provider).catch(err => {
-      if (err && (err.code === 'auth/popup-blocked' || err.code === 'auth/cancelled-popup-request')) {
-        fbAuth.signInWithRedirect(provider);
-      } else if (err) {
-        alert('로그인 오류: ' + err.message);
-      }
-    });
-  }
+  fbAuth.signInWithPopup(provider).catch(err => {
+    if (!err) return;
+    // 팝업이 막힌 환경에서만 리디렉션으로 폴백
+    if (err.code === 'auth/popup-blocked' ||
+        err.code === 'auth/operation-not-supported-in-this-environment' ||
+        err.code === 'auth/cancelled-popup-request') {
+      fbAuth.signInWithRedirect(provider);
+    } else if (err.code !== 'auth/popup-closed-by-user') {
+      alert('로그인 오류: ' + err.message);
+    }
+  });
 }
 
 // 인증 상태 감지 (자동 로그인 포함)
 function initGoogleLogin() {
+  // 리디렉션 방식으로 돌아온 경우 결과 처리 (폴백 경로)
+  fbAuth.getRedirectResult().catch(err => {
+    if (err && err.code) console.error('redirect 로그인 오류', err.code, err.message);
+  });
   fbAuth.onAuthStateChanged(async (user) => {
     if (user) {
       await onFirebaseLogin(user);
