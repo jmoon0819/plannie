@@ -1080,6 +1080,56 @@ body.font-sans .memo-field { font-family: 'Noto Sans KR', sans-serif; }
 }
 body.login-mode .login-screen { display: flex; }
 
+/* 인앱 브라우저 경고 배너 */
+.inapp-banner {
+  width: 100%; max-width: 360px;
+  background: #FFF6E5; border: 1px solid #F2D98C;
+  border-radius: 14px; padding: 16px 18px; margin-bottom: 18px;
+  text-align: center;
+}
+.inapp-banner-title { font-size: 15px; font-weight: 800; color: #8A6D1B; margin-bottom: 7px; }
+.inapp-banner-desc { font-size: 12.5px; color: #9A7B2E; line-height: 1.6; }
+.inapp-banner-btn {
+  margin-top: 12px; background: #111; color: #fff; border: none;
+  border-radius: 9px; padding: 9px 18px; font-size: 13px; font-weight: 700;
+  font-family: inherit; cursor: pointer;
+}
+
+/* 스크롤 힌트 */
+.scroll-hint {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  margin-top: 38px; cursor: pointer; color: #bbb; font-size: 12px;
+  animation: bounceDown 2s ease-in-out infinite;
+}
+@keyframes bounceDown { 0%,100%{transform:translateY(0);} 50%{transform:translateY(5px);} }
+
+/* 사용 설명서 — 애플 스타일 */
+.guide { width: 100%; max-width: 420px; padding: 0 8px 60px; }
+.guide-hero { text-align: center; padding: 80px 0 30px; }
+.guide-eyebrow { font-size: 13px; font-weight: 700; color: #aaa; letter-spacing: 1px; margin-bottom: 14px; }
+.guide-h1 { font-size: 34px; font-weight: 800; color: #000; line-height: 1.25; letter-spacing: -0.8px; margin-bottom: 18px; }
+.guide-lead { font-size: 16px; color: #888; line-height: 1.6; font-weight: 500; }
+.guide-sec { text-align: center; padding: 60px 0; border-top: 1px solid #ECECEC; }
+.guide-num { font-size: 13px; font-weight: 800; color: #ccc; letter-spacing: 1px; margin-bottom: 14px; }
+.guide-h2 { font-size: 26px; font-weight: 800; color: #000; letter-spacing: -0.5px; margin-bottom: 14px; line-height: 1.3; }
+.guide-p { font-size: 15px; color: #888; line-height: 1.65; font-weight: 500; max-width: 320px; margin: 0 auto; }
+.guide-mock {
+  width: 100%; max-width: 300px; margin: 28px auto 0;
+  border-radius: 18px; overflow: hidden;
+  background: #fff; border: 1px solid #ECECEC;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.06);
+}
+.guide-mock svg { display: block; width: 100%; height: auto; }
+.guide-sync .guide-h2 { color: #000; }
+.guide-cta {
+  display: block; width: 100%; max-width: 280px; margin: 50px auto 0;
+  background: #000; color: #fff; border: none; border-radius: 30px;
+  padding: 16px; font-size: 16px; font-weight: 700; font-family: inherit; cursor: pointer;
+  transition: transform 0.1s;
+}
+.guide-cta:active { transform: scale(0.97); }
+.guide-footer { text-align: center; margin-top: 40px; font-size: 12px; color: #ccc; }
+
 /* ─── 홈 허브 / 통계 / 관리자 화면 ─── */
 .home-screen, .stats-screen, .admin-screen {
   width: 100%;
@@ -1586,6 +1636,11 @@ body.cal-mode .day-nav { display: none; }
     </svg>
   </div>
   <p class="login-sub">공부한 하루를 꾸미고 공유해요</p>
+  <div id="inappBanner" class="inapp-banner" style="display:none;">
+    <div class="inapp-banner-title">⚠️ Safari로 열어주세요</div>
+    <div class="inapp-banner-desc">카카오톡·인스타그램 안에서는 구글 로그인이 막혀 있어요.<br>오른쪽 메뉴(<b>···</b> 또는 <b>공유</b>)에서 <b>"Safari로 열기"</b>를 눌러주세요.</div>
+    <button class="inapp-banner-btn" onclick="copyAppLink()">링크 복사하기</button>
+  </div>
   <div class="login-card">
     <div class="login-title">시작하기</div>
     <p class="login-desc">구글 계정으로 로그인하면<br>내 플래너가 저장돼요</p>
@@ -1609,6 +1664,176 @@ body.cal-mode .day-nav { display: none; }
              placeholder="닉네임 (최대 12자)" onkeydown="if(event.key==='Enter')confirmNickname()"/>
       <button class="nickname-btn" onclick="confirmNickname()">시작하기</button>
     </div>
+  </div>
+
+  <!-- 스크롤 힌트 -->
+  <div class="scroll-hint" onclick="document.getElementById('guide').scrollIntoView({behavior:'smooth'})">
+    <span>플래니 알아보기</span>
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#bbb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+  </div>
+
+  <!-- 사용 설명서 (애플 스타일) -->
+  <div class="guide" id="guide">
+    <section class="guide-hero">
+      <div class="guide-eyebrow">Plannie</div>
+      <h1 class="guide-h1">공부한 하루를,<br>예쁘게 남겨요.</h1>
+      <p class="guide-lead">계획하고, 꾸미고, 공유하는<br>나만의 다꾸 스터디 플래너.</p>
+    </section>
+
+    <section class="guide-sec">
+      <div class="guide-num">01</div>
+      <h2 class="guide-h2">계획을 짜요</h2>
+      <p class="guide-p">과목과 시간을 넣으면 타임테이블이 채워져요. 할 일을 체크하면 공부한 시간이 자동으로 쌓여요.</p>
+      <div class="guide-mock">
+        <svg viewBox="0 0 300 200" xmlns="http://www.w3.org/2000/svg">
+          <rect width="300" height="200" fill="#fff"/>
+          <text x="18" y="26" font-family="sans-serif" font-size="9" font-weight="700" fill="#bbb" letter-spacing="1">TASKS</text>
+          <!-- task rows -->
+          <g font-family="sans-serif">
+            <rect x="16" y="36" width="180" height="30" rx="6" fill="#FAFAFA"/>
+            <rect x="16" y="36" width="3" height="30" fill="#9cf"/>
+            <rect x="28" y="46" width="34" height="9" rx="2" fill="#e5e5e5"/>
+            <rect x="70" y="46" width="90" height="9" rx="2" fill="#eee"/>
+            <circle cx="182" cy="51" r="7" fill="#111"/><path d="M178 51l3 3 5-5.5" stroke="#fff" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+            <!-- highlighted done row -->
+            <rect x="16" y="72" width="180" height="30" rx="6" fill="#FAFAFA"/>
+            <rect x="16" y="72" width="3" height="30" fill="#f9a"/>
+            <rect x="24" y="83" width="160" height="9" rx="3" fill="rgba(255,220,80,0.5)"/>
+            <rect x="28" y="83" width="30" height="8" rx="2" fill="#ddd"/>
+            <rect x="66" y="83" width="80" height="8" rx="2" fill="#e8e8e8"/>
+            <circle cx="182" cy="87" r="7" fill="#111"/><path d="M178 87l3 3 5-5.5" stroke="#fff" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+            <rect x="16" y="108" width="180" height="30" rx="6" fill="#FAFAFA"/>
+            <rect x="16" y="108" width="3" height="30" fill="#9f9"/>
+            <rect x="28" y="118" width="34" height="9" rx="2" fill="#e5e5e5"/>
+            <rect x="70" y="118" width="70" height="9" rx="2" fill="#eee"/>
+            <circle cx="182" cy="123" r="7" fill="none" stroke="#ddd" stroke-width="1.6"/>
+          </g>
+          <!-- timetable -->
+          <text x="218" y="26" font-family="sans-serif" font-size="9" font-weight="700" fill="#bbb" letter-spacing="1">TIME</text>
+          <g>
+            <line x1="216" y1="36" x2="216" y2="170" stroke="#eee" stroke-width="1"/>
+            <rect x="224" y="40" width="60" height="26" rx="4" fill="#cfe3f2"/>
+            <rect x="224" y="74" width="60" height="34" rx="4" fill="#f6d3da"/>
+            <rect x="224" y="116" width="60" height="20" rx="4" fill="#d3eddc"/>
+          </g>
+          <!-- total -->
+          <rect x="16" y="156" width="268" height="30" rx="8" fill="#111"/>
+          <text x="30" y="175" font-family="sans-serif" font-size="11" font-weight="700" fill="#fff">TOTAL</text>
+          <text x="250" y="175" font-family="sans-serif" font-size="12" font-weight="800" fill="#fff">3H 30M</text>
+        </svg>
+      </div>
+    </section>
+
+    <section class="guide-sec">
+      <div class="guide-num">02</div>
+      <h2 class="guide-h2">예쁘게 꾸며요</h2>
+      <p class="guide-p">사진, 스티커, 캐릭터로 하루를 꾸며요. 6가지 테마로 분위기를 바꿀 수 있어요.</p>
+      <div class="guide-mock">
+        <svg viewBox="0 0 300 200" xmlns="http://www.w3.org/2000/svg">
+          <rect width="300" height="200" fill="#FFF8F2"/>
+          <!-- note lines -->
+          <g stroke="#f0e3d8" stroke-width="1">
+            <line x1="20" y1="40" x2="280" y2="40"/><line x1="20" y1="70" x2="280" y2="70"/>
+            <line x1="20" y1="100" x2="280" y2="100"/><line x1="20" y1="130" x2="280" y2="130"/><line x1="20" y1="160" x2="280" y2="160"/>
+          </g>
+          <!-- polaroid photo -->
+          <g transform="rotate(-6 70 70)">
+            <rect x="34" y="34" width="72" height="84" rx="3" fill="#fff" stroke="#e8e8e8"/>
+            <rect x="40" y="40" width="60" height="56" rx="2" fill="#dce6ee"/>
+            <path d="M40 84l16-16 12 12 10-8 22 16v8H40z" fill="#c2d4e0"/>
+            <circle cx="86" cy="56" r="6" fill="#eccf8e"/>
+          </g>
+          <!-- character sticker -->
+          <g transform="translate(150 96) rotate(8)">
+            <circle cx="0" cy="0" r="26" fill="#fff" stroke="#1a1a1a" stroke-width="2"/>
+            <path d="M-20 -4 C-24 -20 -8 -26 0 -25 C8 -26 24 -20 20 -4 C14 -12 6 -14 0 -13 C-6 -14 -14 -12 -20 -4Z" fill="#fff" stroke="#1a1a1a" stroke-width="2"/>
+            <path d="M-14 -2 Q-9 -6 -4 -2" stroke="#1a1a1a" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+            <circle cx="-9" cy="0.5" r="1.8" fill="#1a1a1a"/>
+            <path d="M4 -2 Q9 -6 14 -2" stroke="#1a1a1a" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+            <circle cx="9" cy="0.5" r="1.8" fill="#1a1a1a"/>
+            <path d="M-5 10 Q0 13 5 10" stroke="#1a1a1a" stroke-width="2" fill="none" stroke-linecap="round"/>
+          </g>
+          <!-- emoji stickers -->
+          <text x="208" y="56" font-size="26">⭐</text>
+          <text x="236" y="150" font-size="24">🌸</text>
+          <text x="120" y="176" font-size="22">🎀</text>
+          <!-- theme dots -->
+          <g>
+            <circle cx="210" cy="178" r="7" fill="#111"/>
+            <circle cx="230" cy="178" r="7" fill="#FFB6C1"/>
+            <circle cx="250" cy="178" r="7" fill="#C8B6E6"/>
+            <circle cx="270" cy="178" r="7" fill="#cfe3f2"/>
+          </g>
+        </svg>
+      </div>
+    </section>
+
+    <section class="guide-sec">
+      <div class="guide-num">03</div>
+      <h2 class="guide-h2">한눈에 봐요</h2>
+      <p class="guide-p">이번 주 공부 이행률과 과목별 시간을 그래프로. 내가 얼마나 했는지 바로 알 수 있어요.</p>
+      <div class="guide-mock">
+        <svg viewBox="0 0 300 200" xmlns="http://www.w3.org/2000/svg">
+          <rect width="300" height="200" fill="#fff"/>
+          <!-- donut -->
+          <g transform="translate(80 100)">
+            <circle r="46" fill="none" stroke="#F0F0F0" stroke-width="12"/>
+            <circle r="46" fill="none" stroke="#111" stroke-width="12" stroke-linecap="round"
+                    stroke-dasharray="289" stroke-dashoffset="96" transform="rotate(-90)"/>
+            <text x="0" y="4" text-anchor="middle" font-family="sans-serif" font-size="26" font-weight="800" fill="#111">67%</text>
+            <text x="0" y="20" text-anchor="middle" font-family="sans-serif" font-size="8" fill="#bbb">이행률</text>
+          </g>
+          <!-- subject bars -->
+          <g font-family="sans-serif">
+            <text x="160" y="58" font-size="9" font-weight="700" fill="#bbb" letter-spacing="1">과목별</text>
+            <circle cx="166" cy="78" r="4" fill="#9cf"/><text x="176" y="82" font-size="10" font-weight="700" fill="#333">수학</text>
+            <rect x="176" y="90" width="104" height="7" rx="3" fill="#f0f0f0"/><rect x="176" y="90" width="104" height="7" rx="3" fill="#9cf"/>
+            <circle cx="166" cy="112" r="4" fill="#f9a"/><text x="176" y="116" font-size="10" font-weight="700" fill="#333">영어</text>
+            <rect x="176" y="124" width="104" height="7" rx="3" fill="#f0f0f0"/><rect x="176" y="124" width="78" height="7" rx="3" fill="#f9a"/>
+            <circle cx="166" cy="146" r="4" fill="#9d9"/><text x="176" y="150" font-size="10" font-weight="700" fill="#333">국어</text>
+            <rect x="176" y="158" width="104" height="7" rx="3" fill="#f0f0f0"/><rect x="176" y="158" width="52" height="7" rx="3" fill="#9d9"/>
+          </g>
+        </svg>
+      </div>
+    </section>
+
+    <section class="guide-sec">
+      <div class="guide-num">04</div>
+      <h2 class="guide-h2">자랑해요</h2>
+      <p class="guide-p">완성한 하루를 인스타 스토리 크기로 저장해 공유해요. 공스타가 가장 쉬워져요.</p>
+      <div class="guide-mock" style="max-width:170px;">
+        <svg viewBox="0 0 170 290" xmlns="http://www.w3.org/2000/svg">
+          <defs><linearGradient id="storyBg" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#FFF9F0"/><stop offset="1" stop-color="#F5EDE0"/>
+          </linearGradient></defs>
+          <rect width="170" height="290" fill="url(#storyBg)"/>
+          <!-- planner card inside story -->
+          <g transform="translate(28 40)">
+            <rect width="114" height="180" rx="8" fill="#fff" stroke="#eee"/>
+            <rect x="12" y="14" width="40" height="8" rx="2" fill="#222"/>
+            <rect x="12" y="30" width="90" height="1" fill="#eee"/>
+            <g>
+              <rect x="12" y="40" width="62" height="7" rx="2" fill="#eee"/><circle cx="92" cy="43" r="4" fill="#111"/>
+              <rect x="12" y="40" width="62" height="7" rx="2" fill="rgba(255,220,80,0.5)"/>
+              <rect x="12" y="56" width="70" height="7" rx="2" fill="#eee"/><circle cx="92" cy="59" r="4" fill="#111"/>
+              <rect x="12" y="72" width="54" height="7" rx="2" fill="#eee"/><circle cx="92" cy="75" r="4" fill="none" stroke="#ddd" stroke-width="1.4"/>
+            </g>
+            <text x="48" y="34" font-size="22">⭐</text>
+            <rect x="12" y="150" width="90" height="18" rx="5" fill="#111"/>
+            <text x="20" y="163" font-family="sans-serif" font-size="8" font-weight="700" fill="#fff">3H 30M 🔥</text>
+          </g>
+          <text x="85" y="258" text-anchor="middle" font-family="Georgia,serif" font-size="20" font-weight="700" fill="#B8956A" font-style="italic">plannie</text>
+        </svg>
+      </div>
+    </section>
+
+    <section class="guide-sec guide-sync">
+      <h2 class="guide-h2">어디서든, 그대로.</h2>
+      <p class="guide-p">구글 계정으로 로그인하면 폰이든 PC든 똑같이. 데이터는 안전하게 저장돼요.</p>
+    </section>
+
+    <button class="guide-cta" onclick="window.scrollTo({top:0,behavior:'smooth'})">시작하기</button>
+    <div class="guide-footer">Plannie · 공부한 하루를 예쁘게</div>
   </div>
 </div>
 
@@ -3060,8 +3285,31 @@ function makeDraggable(el) {
 let currentUser = null;     // { sub(uid), name(nickname), picture, email }
 let pendingFbUser = null;   // 닉네임 설정 대기 중인 Firebase user
 
+// 카카오톡·인스타 등 인앱 브라우저 감지 (sessionStorage 파티셔닝으로 구글 로그인 불가)
+function isInAppBrowser() {
+  const ua = (navigator.userAgent || '').toLowerCase();
+  return /kakaotalk|instagram|fban|fbav|fb_iab|line\/|naver|daumapps|everytimeapp|trill|musical_ly|snapchat/i.test(ua);
+}
+
+function copyAppLink() {
+  const url = 'https://jmoon0819.github.io/plannie/';
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(url).then(
+      () => alert('링크를 복사했어요!\nSafari나 Chrome 주소창에 붙여넣어 열어주세요.'),
+      () => prompt('이 주소를 복사해서 Safari로 열어주세요:', url)
+    );
+  } else {
+    prompt('이 주소를 복사해서 Safari로 열어주세요:', url);
+  }
+}
+
 // 구글 로그인 버튼 (팝업 우선 — 모바일 Safari 포함 가장 안정적)
 function triggerGoogleLogin() {
+  if (isInAppBrowser()) {
+    document.getElementById('inappBanner').style.display = 'block';
+    alert('카카오톡·인스타그램 안에서는 구글 로그인이 안 돼요.\n오른쪽 메뉴에서 "Safari로 열기"를 눌러주세요.');
+    return;
+  }
   const provider = new firebase.auth.GoogleAuthProvider();
   provider.setCustomParameters({ prompt: 'select_account' });
   fbAuth.signInWithPopup(provider).catch(err => {
@@ -3079,6 +3327,11 @@ function triggerGoogleLogin() {
 
 // 인증 상태 감지 (자동 로그인 포함)
 function initGoogleLogin() {
+  // 인앱 브라우저면 미리 경고 배너 표시
+  if (isInAppBrowser()) {
+    const b = document.getElementById('inappBanner');
+    if (b) b.style.display = 'block';
+  }
   // 리디렉션 방식으로 돌아온 경우 결과 처리 (폴백 경로)
   fbAuth.getRedirectResult().catch(err => {
     if (err && err.code) console.error('redirect 로그인 오류', err.code, err.message);
